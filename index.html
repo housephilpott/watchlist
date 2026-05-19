@@ -28,7 +28,7 @@
     <section id="tab-log" class="space-y-4">
       <div class="bg-white rounded-2xl border shadow-sm p-4">
         <h2 class="font-semibold mb-3">Filters</h2>
-        <div class="grid gap-3 md:grid-cols-6">
+        <div class="grid gap-3 md:grid-cols-7">
           <div class="md:col-span-2">
             <label class="text-xs text-slate-600">Search title/notes</label>
             <input id="fSearch" class="mt-1 w-full rounded-2xl border px-3 py-2" placeholder="e.g. Frieren, Wes Anderson..." />
@@ -40,6 +40,22 @@
               <option value="episode">Episodes</option>
               <option value="movie">Movies</option>
               <option value="special">Specials</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-600">Platform</label>
+            <select id="fPlatform" class="mt-1 w-full rounded-2xl border px-3 py-2">
+              <option value="all">All</option>
+              <option value="Netflix">Netflix</option>
+              <option value="TVNZ+">TVNZ+</option>
+              <option value="Disney+">Disney+</option>
+              <option value="Prime Video">Prime Video</option>
+              <option value="Apple TV+">Apple TV+</option>
+              <option value="Neon">Neon</option>
+              <option value="YouTube">YouTube</option>
+              <option value="Cinema">Cinema</option>
+              <option value="Blu-ray/DVD">Blu-ray/DVD</option>
+              <option value="Other">Other</option>
             </select>
           </div>
           <div>
@@ -85,6 +101,8 @@
                 <th class="p-3 text-left">Title</th>
                 <th class="p-3 text-left">S</th>
                 <th class="p-3 text-left">E</th>
+                <th class="p-3 text-left">Episode Title</th>
+                <th class="p-3 text-left">Platform</th>
                 <th class="p-3 text-left">Type</th>
                 <th class="p-3 text-left">Repeat</th>
                 <th class="p-3 text-left">Rating</th>
@@ -149,11 +167,31 @@
           <label class="text-xs text-slate-600">Episode</label>
           <input id="aEpisode" class="mt-1 w-full rounded-2xl border px-3 py-2" placeholder="e.g. 7, or movie/special" />
         </div>
+        <div class="md:col-span-2">
+          <label class="text-xs text-slate-600">Episode Title</label>
+          <input id="aEpTitle" class="mt-1 w-full rounded-2xl border px-3 py-2" placeholder="e.g. The One Where..." />
+        </div>
         <div class="md:col-span-2 flex gap-2">
           <button id="btnSetMovie" class="px-3 py-2 rounded-2xl bg-slate-100 border">Set as movie</button>
           <button id="btnSetSpecial" class="px-3 py-2 rounded-2xl bg-slate-100 border">Set as special</button>
         </div>
-        <div class="md:col-span-2">
+        <div>
+          <label class="text-xs text-slate-600">Platform</label>
+          <select id="aPlatform" class="mt-1 w-full rounded-2xl border px-3 py-2">
+            <option value=""></option>
+            <option value="Netflix">Netflix</option>
+            <option value="TVNZ+">TVNZ+</option>
+            <option value="Disney+">Disney+</option>
+            <option value="Prime Video">Prime Video</option>
+            <option value="Apple TV+">Apple TV+</option>
+            <option value="Neon">Neon</option>
+            <option value="YouTube">YouTube</option>
+            <option value="Cinema">Cinema</option>
+            <option value="Blu-ray/DVD">Blu-ray/DVD</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
           <label class="text-xs text-slate-600">Rating (0-5)</label>
           <input id="aRating" type="number" min="0" max="5" step="1" class="mt-1 w-full rounded-2xl border px-3 py-2" />
         </div>

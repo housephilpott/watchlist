@@ -1,16 +1,16 @@
 // ====== CONFIG ======
-const API_BASE = "https://script.google.com/macros/s/AKfycbymzwZPQOCat8KEukI_G0Pg5-SpIXdfzuE_m5_YH50871phWX98YbzFY3dmonD41omz2Q/exec";
+var API_BASE = "https://script.google.com/macros/s/AKfycbymzwZPQOCat8KEukI_G0Pg5-SpIXdfzuE_m5_YH50871phWX98YbzFY3dmonD41omz2Q/exec";
 
 // ====== STATE ======
-let LOG = [];
-let WATCHLIST = [];
-let chart;
+var LOG = [];
+var WATCHLIST = [];
+var chart;
 
 // ====== HELPERS ======
-const $ = (id) => document.getElementById(id);
+function $(id) { return document.getElementById(id); }
 
 function showError(msg) {
-  const el = $("error");
+  var el = $("error");
   if (!msg) { el.classList.add("hidden"); el.textContent = ""; return; }
   el.textContent = msg;
   el.classList.remove("hidden");
@@ -19,47 +19,56 @@ function showError(msg) {
 function norm(s) { return String(s || "").trim().toLowerCase(); }
 
 function inferType(season, episode) {
-  const s = norm(season), e = norm(episode);
+  var s = norm(season), e = norm(episode);
   if (s === "movie" || e === "movie") return "movie";
   if (s === "special" || e === "special") return "special";
   return "episode";
 }
 
 function parseDate(s) {
-  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  var m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return null;
   return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
 function monthKey(dateStr) {
-  const d = parseDate(dateStr);
+  var d = parseDate(dateStr);
   if (!d) return "Unknown";
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  var mm = String(d.getMonth() + 1).padStart(2, "0");
   return d.getFullYear() + "-" + mm;
 }
 
 function stars(n) {
-  const x = Number(n || 0);
+  var x = Number(n || 0);
   return x ? "\u2605".repeat(x) : "\u2014";
 }
 
-async function apiGet(path) {
-  const res = await fetch(API_BASE + "?path=" + encodeURIComponent(path), {
-    method: "GET",
-    headers: { "Accept": "application/json" }
-  });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
+function escHtml(s) {
+  var div = document.createElement("div");
+  div.textContent = String(s || "");
+  return div.innerHTML;
 }
 
-async function apiPost(path, body) {
-  const res = await fetch(API_BASE, {
+function apiGet(path) {
+  return fetch(API_BASE + "?path=" + encodeURIComponent(path), {
+    method: "GET",
+    headers: { "Accept": "application/json" }
+  }).then(function(res) {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  });
+}
+
+function apiPost(path, body) {
+  var payload = Object.assign({ path: path }, body);
+  return fetch(API_BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Accept": "application/json" },
-    body: JSON.stringify(Object.assign({ path: path }, body))
+    body: JSON.stringify(payload)
+  }).then(function(res) {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
   });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
 }
 
 // ====== RENDER: TABS ======
@@ -78,6 +87,7 @@ function showTab(name) {
 function getFilteredLog() {
   var s = norm($("fSearch").value);
   var type = $("fType").value;
+  var platform = $("fPlatform").value;
   var rep = $("fRepeat").value;
   var minR = Number($("fMinRating").value || 0);
   var from = $("fFrom").value ? parseDate($("fFrom").value) : null;
@@ -87,6 +97,8 @@ function getFilteredLog() {
     .filter(function(r) {
       var t = inferType(r.season, r.episode);
       if (type !== "all" && t !== type) return false;
+
+      if (platform !== "all" && norm(r.platform) !== norm(platform)) return false;
 
       var isRepeat = !!r.repeat;
       if (rep === "repeat" && !isRepeat) return false;
@@ -99,7 +111,7 @@ function getFilteredLog() {
       if (to && dv && dv > to) return false;
 
       if (!s) return true;
-      var hay = (r.title + " " + (r.notes || "")).toLowerCase();
+      var hay = (r.title + " " + (r.episodeTitle || "") + " " + (r.notes || "")).toLowerCase();
       return hay.indexOf(s) !== -1;
     })
     .sort(function(a, b) {
@@ -115,7 +127,7 @@ function renderLog() {
   $("count").textContent = "(" + data.length + ")";
 
   if (!data.length) {
-    rows.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500">No matches. Try clearing filters.</td></tr>';
+    rows.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-slate-500">No matches. Try clearing filters.</td></tr>';
     return;
   }
 
@@ -135,14 +147,16 @@ function renderLog() {
 
     rows.insertAdjacentHTML("beforeend",
       '<tr class="border-t hover:bg-slate-50">' +
-        '<td class="p-3 whitespace-nowrap">' + (r.dateViewed || "") + '</td>' +
-        '<td class="p-3 font-medium">' + (r.title || "") + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + (r.season || "") + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + (r.episode || "") + '</td>' +
+        '<td class="p-3 whitespace-nowrap">' + escHtml(r.dateViewed) + '</td>' +
+        '<td class="p-3 font-medium">' + escHtml(r.title) + '</td>' +
+        '<td class="p-3 whitespace-nowrap">' + escHtml(r.season) + '</td>' +
+        '<td class="p-3 whitespace-nowrap">' + escHtml(r.episode) + '</td>' +
+        '<td class="p-3">' + escHtml(r.episodeTitle) + '</td>' +
+        '<td class="p-3 whitespace-nowrap">' + escHtml(r.platform) + '</td>' +
         '<td class="p-3">' + typePill + '</td>' +
         '<td class="p-3">' + repeatBadge + '</td>' +
         '<td class="p-3 whitespace-nowrap">' + stars(r.rating) + '</td>' +
-        '<td class="p-3 min-w-[320px]">' + (r.notes || "") + '</td>' +
+        '<td class="p-3 min-w-[280px]">' + escHtml(r.notes) + '</td>' +
       '</tr>'
     );
   }
@@ -205,7 +219,7 @@ function renderWatchlist() {
     if (norm(w.kind) === "film") {
       badge = '<span class="px-2 py-1 rounded-full text-xs bg-indigo-600 text-white">Film</span>';
     } else {
-      badge = '<span class="px-2 py-1 rounded-full text-xs bg-emerald-600 text-white">Season ' + w.season + '</span>';
+      badge = '<span class="px-2 py-1 rounded-full text-xs bg-emerald-600 text-white">Season ' + escHtml(w.season) + '</span>';
     }
 
     var doneBadge = w.watched
@@ -213,7 +227,7 @@ function renderWatchlist() {
       : "";
 
     var toggleButton = norm(w.kind) === "film"
-      ? '<button data-toggle="' + w.id + '" class="mt-2 w-full px-3 py-2 rounded-2xl border bg-white">Toggle done</button>'
+      ? '<button data-toggle="' + escHtml(w.id) + '" class="mt-2 w-full px-3 py-2 rounded-2xl border bg-white">Toggle done</button>'
       : "";
 
     var progressLabel = norm(w.kind) === "film"
@@ -224,12 +238,12 @@ function renderWatchlist() {
       '<div class="bg-white rounded-2xl border shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">' +
         '<div class="space-y-1">' +
           '<div class="flex flex-wrap items-center gap-2">' +
-            '<div class="text-base font-semibold">' + w.title + '</div>' +
-            '<span class="px-2 py-1 rounded-full text-xs bg-slate-200">' + (w.priority || "Medium") + '</span>' +
+            '<div class="text-base font-semibold">' + escHtml(w.title) + '</div>' +
+            '<span class="px-2 py-1 rounded-full text-xs bg-slate-200">' + escHtml(w.priority || "Medium") + '</span>' +
             badge +
             doneBadge +
           '</div>' +
-          '<div class="text-sm text-slate-600">' + (w.notes || "") + '</div>' +
+          '<div class="text-sm text-slate-600">' + escHtml(w.notes) + '</div>' +
         '</div>' +
         '<div class="min-w-[240px]">' +
           '<div class="flex items-center justify-between text-sm mb-2">' +
@@ -332,7 +346,7 @@ function closeModal() {
   $("modal").classList.add("hidden");
 }
 
-async function saveEntry() {
+function saveEntry() {
   showError("");
 
   var row = {
@@ -340,6 +354,8 @@ async function saveEntry() {
     title: $("aTitle").value.trim(),
     season: $("aSeason").value.trim(),
     episode: $("aEpisode").value.trim(),
+    episodeTitle: $("aEpTitle").value.trim(),
+    platform: $("aPlatform").value,
     repeat: $("aRepeat").checked,
     rating: Number($("aRating").value || 0),
     notes: $("aNotes").value.trim()
@@ -349,36 +365,42 @@ async function saveEntry() {
   if (!row.season) row.season = "1";
   if (!row.episode) row.episode = "1";
 
-  try {
-    var resp = await apiPost("addLog", { row: row });
-    if (!resp.ok) throw new Error(resp.error || "Save failed");
-    await sync();
-    closeModal();
-    $("aTitle").value = "";
-    $("aSeason").value = "";
-    $("aEpisode").value = "";
-    $("aRepeat").checked = false;
-    $("aRating").value = "";
-    $("aNotes").value = "";
-  } catch (e) {
-    showError(String(e));
-  }
+  apiPost("addLog", { row: row })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error(resp.error || "Save failed");
+      return sync();
+    })
+    .then(function() {
+      closeModal();
+      $("aTitle").value = "";
+      $("aSeason").value = "";
+      $("aEpisode").value = "";
+      $("aEpTitle").value = "";
+      $("aPlatform").value = "";
+      $("aRepeat").checked = false;
+      $("aRating").value = "";
+      $("aNotes").value = "";
+    })
+    .catch(function(e) {
+      showError(String(e));
+    });
 }
 
 // ====== SYNC ======
-async function sync() {
+function sync() {
   showError("");
-  try {
-    var resp = await apiGet("log");
-    if (!resp.ok) throw new Error(resp.error || "Sync failed");
-    LOG = resp.log || [];
-    WATCHLIST = resp.watchlist || [];
-    renderLog();
-    renderWatchlist();
-    renderStats();
-  } catch (e) {
-    showError(String(e));
-  }
+  return apiGet("log")
+    .then(function(resp) {
+      if (!resp.ok) throw new Error(resp.error || "Sync failed");
+      LOG = resp.log || [];
+      WATCHLIST = resp.watchlist || [];
+      renderLog();
+      renderWatchlist();
+      renderStats();
+    })
+    .catch(function(e) {
+      showError(String(e));
+    });
 }
 
 // ====== INIT ======
@@ -392,7 +414,7 @@ function init() {
   }
 
   // Filters -> rerender
-  var filterIds = ["fSearch", "fType", "fRepeat", "fMinRating", "fFrom", "fTo"];
+  var filterIds = ["fSearch", "fType", "fPlatform", "fRepeat", "fMinRating", "fFrom", "fTo"];
   for (var j = 0; j < filterIds.length; j++) {
     $(filterIds[j]).addEventListener("input", renderLog);
     $(filterIds[j]).addEventListener("change", renderLog);
