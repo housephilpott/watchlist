@@ -80,7 +80,7 @@ function apiPost(path, body) {
   var payload = Object.assign({ path: path }, body);
   return fetch(API_BASE, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    headers: { "Content-Type": "text/plain", "Accept": "application/json" },
     body: JSON.stringify(payload)
   }).then(function(res) {
     if (!res.ok) throw new Error("HTTP " + res.status);
