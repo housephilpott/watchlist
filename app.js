@@ -1,10 +1,20 @@
 // ====== CONFIG ======
 var API_BASE = "https://script.google.com/macros/s/AKfycbymzwZPQOCat8KEukI_G0Pg5-SpIXdfzuE_m5_YH50871phWX98YbzFY3dmonD41omz2Q/exec";
+var TMDB_KEY = "f1c1f572df4b1c140d845e056fdcb05f";
+var TMDB_IMG = "https://image.tmdb.org/t/p/w200";
+var TMDB_SEARCH = "https://api.themoviedb.org/3/search/multi";
+var LOG_PAGE_SIZE = 10;
+var WL_PAGE_SIZE = 10;
+var POSTER_CACHE_KEY = "watchlog_poster_cache";
 
 // ====== STATE ======
 var LOG = [];
 var WATCHLIST = [];
 var chart;
+var logVisible = LOG_PAGE_SIZE;
+var wlVisible = WL_PAGE_SIZE;
+var posterCache = {};
+var posterFetching = {};
 
 // ====== HELPERS ======
 function $(id) { return document.getElementById(id); }
@@ -50,6 +60,12 @@ function escHtml(s) {
   return div.innerHTML;
 }
 
+function posterIcon(type) {
+  if (type === "movie") return "\uD83C\uDFAC";
+  if (type === "special") return "\uD83C\uDFA4";
+  return "\uD83D\uDCFA";
+}
+
 function apiGet(path) {
   return fetch(API_BASE + "?path=" + encodeURIComponent(path), {
     method: "GET",
@@ -72,6 +88,100 @@ function apiPost(path, body) {
   });
 }
 
+// ====== POSTER CACHE ======
+function loadPosterCache() {
+  try {
+    var raw = localStorage.getItem(POSTER_CACHE_KEY);
+    if (raw) posterCache = JSON.parse(raw);
+  } catch (e) {
+    posterCache = {};
+  }
+}
+
+function savePosterCache() {
+  try {
+    localStorage.setItem(POSTER_CACHE_KEY, JSON.stringify(posterCache));
+  } catch (e) {
+    // ignore
+  }
+}
+
+function getPosterUrl(title) {
+  var key = norm(title);
+  if (!key) return null;
+  var val = posterCache[key];
+  if (val === "none") return null;
+  return val || null;
+}
+
+function posterHtml(title, type) {
+  var url = getPosterUrl(title);
+  if (url) {
+    return '<img src="' + escHtml(url) + '" alt="" class="w-20 h-28 object-cover rounded-xl flex-shrink-0" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" />' +
+           '<div class="w-20 h-28 bg-surface rounded-xl items-center justify-center text-3xl select-none flex-shrink-0" style="display:none">' + posterIcon(type) + '</div>';
+  }
+  var key = norm(title);
+  if (key && posterCache[key] === undefined && !posterFetching[key]) {
+    // Not yet fetched — show pulse placeholder
+    return '<div class="w-20 h-28 bg-surface rounded-xl animate-pulse flex-shrink-0" data-poster-key="' + escHtml(key) + '"></div>';
+  }
+  // "none" or empty title — show emoji
+  return '<div class="w-20 h-28 bg-surface rounded-xl flex items-center justify-center text-3xl select-none flex-shrink-0">' + posterIcon(type) + '</div>';
+}
+
+function fetchPostersForTitles(titles, callback) {
+  var toFetch = [];
+  for (var i = 0; i < titles.length; i++) {
+    var key = norm(titles[i]);
+    if (key && posterCache[key] === undefined && !posterFetching[key]) {
+      posterFetching[key] = true;
+      toFetch.push({ key: key, title: titles[i] });
+    }
+  }
+
+  if (!toFetch.length) return;
+
+  var idx = 0;
+  function fetchNext() {
+    if (idx >= toFetch.length) {
+      savePosterCache();
+      if (callback) callback();
+      return;
+    }
+    var item = toFetch[idx];
+    idx++;
+    var url = TMDB_SEARCH + "?api_key=" + TMDB_KEY + "&query=" + encodeURIComponent(item.title) + "&page=1";
+
+    fetch(url)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        var posterPath = null;
+        if (data.results && data.results.length) {
+          for (var r = 0; r < data.results.length; r++) {
+            if (data.results[r].poster_path) {
+              posterPath = data.results[r].poster_path;
+              break;
+            }
+          }
+        }
+        if (posterPath) {
+          posterCache[item.key] = TMDB_IMG + posterPath;
+        } else {
+          posterCache[item.key] = "none";
+        }
+        delete posterFetching[item.key];
+      })
+      .catch(function() {
+        posterCache[item.key] = "none";
+        delete posterFetching[item.key];
+      })
+      .then(function() {
+        setTimeout(fetchNext, 250);
+      });
+  }
+  fetchNext();
+}
+
 // ====== NAVIGATION ======
 function showTab(name) {
   ["home", "log", "watchlist", "stats"].forEach(function(t) {
@@ -82,11 +192,10 @@ function showTab(name) {
       el.classList.add("hidden");
     }
   });
-  // Scroll to top on nav
   window.scrollTo(0, 0);
 }
 
-// ====== FILTER + LOG TABLE ======
+// ====== FILTER + LOG ======
 function getFilteredLog() {
   var s = norm($("fSearch").value);
   var type = $("fType").value;
@@ -100,19 +209,14 @@ function getFilteredLog() {
     .filter(function(r) {
       var t = inferType(r.season, r.episode);
       if (type !== "all" && t !== type) return false;
-
       if (platform !== "all" && norm(r.platform) !== norm(platform)) return false;
-
       var isRepeat = !!r.repeat;
       if (rep === "repeat" && !isRepeat) return false;
       if (rep === "first" && isRepeat) return false;
-
       if (Number(r.rating || 0) < minR) return false;
-
       var dv = parseDate(r.dateViewed);
       if (from && dv && dv < from) return false;
       if (to && dv && dv > to) return false;
-
       if (!s) return true;
       var hay = (r.title + " " + (r.episodeTitle || "") + " " + (r.notes || "")).toLowerCase();
       return hay.indexOf(s) !== -1;
@@ -123,20 +227,27 @@ function getFilteredLog() {
 }
 
 function renderLog() {
-  var rows = $("logRows");
-  rows.innerHTML = "";
-
+  var host = $("logTiles");
+  host.innerHTML = "";
   var data = getFilteredLog();
-  $("count").textContent = "(" + data.length + ")";
+  var total = data.length;
+  var showing = Math.min(logVisible, total);
 
-  if (!data.length) {
-    rows.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-muted">No matches. Try clearing filters.</td></tr>';
+  $("count").textContent = "(" + total + ")";
+
+  if (!total) {
+    $("logEmpty").classList.remove("hidden");
+    $("logLoadMore").classList.add("hidden");
     return;
   }
+  $("logEmpty").classList.add("hidden");
 
-  for (var i = 0; i < data.length; i++) {
+  var titlesToFetch = [];
+
+  for (var i = 0; i < showing; i++) {
     var r = data[i];
     var t = inferType(r.season, r.episode);
+
     var typePill;
     if (t === "movie") {
       typePill = '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Movie</span>';
@@ -146,22 +257,77 @@ function renderLog() {
       typePill = '<span class="px-2 py-0.5 rounded-full text-xs bg-slate-500/20 text-slate-300">Episode</span>';
     }
 
-    var repeatBadge = r.repeat ? '<span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300">[r]</span>' : "";
+    var repeatBadge = r.repeat ? ' <span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300">[r]</span>' : "";
 
-    rows.insertAdjacentHTML("beforeend",
-      '<tr class="border-t border-faint/30 hover:bg-surface/50">' +
-        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.dateViewed) + '</td>' +
-        '<td class="p-3 font-medium text-white">' + escHtml(r.title) + '</td>' +
-        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.season) + '</td>' +
-        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.episode) + '</td>' +
-        '<td class="p-3 text-slate-300">' + escHtml(r.episodeTitle) + '</td>' +
-        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.platform) + '</td>' +
-        '<td class="p-3">' + typePill + '</td>' +
-        '<td class="p-3">' + repeatBadge + '</td>' +
-        '<td class="p-3 whitespace-nowrap text-amber-400">' + stars(r.rating) + '</td>' +
-        '<td class="p-3 min-w-[240px] text-slate-400">' + escHtml(r.notes) + '</td>' +
-      '</tr>'
+    var seLine = "";
+    if (t === "episode") {
+      seLine = "S" + escHtml(r.season) + " E" + escHtml(r.episode);
+      if (r.episodeTitle) seLine += ' &middot; <span class="text-slate-300">' + escHtml(r.episodeTitle) + '</span>';
+    } else if (r.episodeTitle) {
+      seLine = '<span class="text-slate-300">' + escHtml(r.episodeTitle) + '</span>';
+    }
+
+    var notesHtml = "";
+    if (r.notes) {
+      notesHtml = '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">' + escHtml(r.notes) + '</div>';
+    }
+
+    // Collect titles for TMDB fetch
+    if (r.title && norm(r.title) && posterCache[norm(r.title)] === undefined) {
+      titlesToFetch.push(r.title);
+    }
+
+    host.insertAdjacentHTML("beforeend",
+      '<div class="bg-card rounded-2xl p-3 flex gap-3">' +
+        '<div class="flex-shrink-0">' + posterHtml(r.title, t) + '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="font-semibold text-white text-sm leading-snug truncate">' + escHtml(r.title) + '</div>' +
+          (seLine ? '<div class="text-xs text-muted mt-0.5">' + seLine + '</div>' : '') +
+          '<div class="flex items-center gap-2 mt-1">' +
+            '<span class="text-amber-400 text-xs">' + stars(r.rating) + '</span>' +
+            (r.platform ? '<span class="text-xs text-muted">&middot; ' + escHtml(r.platform) + '</span>' : '') +
+          '</div>' +
+          '<div class="flex flex-wrap items-center gap-1.5 mt-1">' +
+            '<span class="text-xs text-faint">' + escHtml(r.dateViewed) + '</span>' +
+            typePill +
+            repeatBadge +
+          '</div>' +
+          notesHtml +
+        '</div>' +
+      '</div>'
     );
+  }
+
+  // Notes expand/collapse
+  var noteEls = host.querySelectorAll(".notes-text");
+  for (var n = 0; n < noteEls.length; n++) {
+    noteEls[n].addEventListener("click", function() {
+      var expanded = this.getAttribute("data-expanded") === "true";
+      if (expanded) {
+        this.classList.remove("line-clamp-none");
+        this.classList.add("line-clamp-2");
+        this.setAttribute("data-expanded", "false");
+      } else {
+        this.classList.remove("line-clamp-2");
+        this.classList.add("line-clamp-none");
+        this.setAttribute("data-expanded", "true");
+      }
+    });
+  }
+
+  // Load more
+  if (showing < total) {
+    $("logLoadMore").classList.remove("hidden");
+    $("logShowing").textContent = "Showing " + showing + " of " + total;
+  } else {
+    $("logLoadMore").classList.add("hidden");
+  }
+
+  // Fetch missing posters
+  if (titlesToFetch.length) {
+    fetchPostersForTitles(titlesToFetch, function() {
+      renderLog();
+    });
   }
 }
 
@@ -208,72 +374,118 @@ function computeWatchlistProgress() {
 }
 
 function renderWatchlist() {
-  var host = $("watchlistCards");
+  var host = $("watchlistTiles");
   host.innerHTML = "";
   var list = computeWatchlistProgress();
+  var total = list.length;
+  var showing = Math.min(wlVisible, total);
 
-  if (!list.length) {
-    host.innerHTML = '<div class="bg-card rounded-2xl p-6 text-center text-muted">No items in your watchlist yet.</div>';
+  if (!total) {
+    $("wlEmpty").classList.remove("hidden");
+    $("wlLoadMore").classList.add("hidden");
     return;
   }
+  $("wlEmpty").classList.add("hidden");
 
-  for (var i = 0; i < list.length; i++) {
+  var titlesToFetch = [];
+
+  for (var i = 0; i < showing; i++) {
     var w = list[i];
-    var total = Number(w.totalEpisodes || 0);
-    var done = Number(w.watchedEpisodes || 0);
-    var pct = total ? Math.min(100, Math.round((done / total) * 100)) : (w.watched ? 100 : 0);
+    var totalEps = Number(w.totalEpisodes || 0);
+    var doneEps = Number(w.watchedEpisodes || 0);
+    var pct = totalEps ? Math.min(100, Math.round((doneEps / totalEps) * 100)) : (w.watched ? 100 : 0);
+    var isFilm = norm(w.kind) === "film";
+    var tileType = isFilm ? "movie" : "episode";
 
-    var badge;
-    if (norm(w.kind) === "film") {
-      badge = '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Film</span>';
+    var kindBadge;
+    if (isFilm) {
+      kindBadge = '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Film</span>';
     } else {
-      badge = '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">Season ' + escHtml(w.season) + '</span>';
+      kindBadge = '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">Season ' + escHtml(w.season) + '</span>';
     }
+
+    var prioColor = { "High": "text-red-400", "Medium": "text-amber-400", "Low": "text-slate-400" };
+    var pc = prioColor[w.priority] || "text-muted";
 
     var doneBadge = w.watched
       ? '<span class="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-300">Done</span>'
       : "";
 
-    var prioColor = { "High": "text-red-400", "Medium": "text-amber-400", "Low": "text-slate-400" };
-    var pc = prioColor[w.priority] || "text-muted";
-
-    var toggleButton = norm(w.kind) === "film"
-      ? '<button data-toggle="' + escHtml(w.id) + '" class="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Toggle done</button>'
-      : "";
-
-    var progressLabel = norm(w.kind) === "film"
-      ? (w.watched ? "Watched" : "Not watched")
-      : (done + "/" + total + " eps");
-
     var barColor = w.watched ? "bg-green-500" : "bg-accent";
 
+    var progressLabel = isFilm
+      ? (w.watched ? "Watched" : "Not watched")
+      : (doneEps + "/" + totalEps + " eps");
+
+    var toggleBtn = isFilm
+      ? '<button data-toggle="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm transition active:scale-[0.9] ' +
+        (w.watched ? 'bg-green-500 text-white' : 'bg-surface border border-faint text-faint hover:border-green-500 hover:text-green-400') +
+        '">' +
+        '\u2713' +
+        '</button>'
+      : "";
+
+    var notesHtml = "";
+    if (w.notes) {
+      notesHtml = '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">' + escHtml(w.notes) + '</div>';
+    }
+
+    if (w.title && norm(w.title) && posterCache[norm(w.title)] === undefined) {
+      titlesToFetch.push(w.title);
+    }
+
     host.insertAdjacentHTML("beforeend",
-      '<div class="bg-card rounded-2xl p-4 space-y-3">' +
-        '<div class="flex flex-wrap items-center gap-2">' +
-          '<div class="font-semibold text-white">' + escHtml(w.title) + '</div>' +
-          '<span class="px-2 py-0.5 rounded-full text-xs bg-surface ' + pc + '">' + escHtml(w.priority || "Medium") + '</span>' +
-          badge +
-          doneBadge +
-        '</div>' +
-        (w.notes ? '<div class="text-sm text-muted">' + escHtml(w.notes) + '</div>' : '') +
-        '<div>' +
-          '<div class="flex items-center justify-between text-sm mb-1.5">' +
-            '<span class="text-slate-300">' + progressLabel + '</span>' +
-            '<span class="text-muted">' + pct + '%</span>' +
+      '<div class="bg-card rounded-2xl p-3 flex gap-3">' +
+        '<div class="flex-shrink-0">' + posterHtml(w.title, tileType) + '</div>' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="flex items-start gap-2">' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="font-semibold text-white text-sm leading-snug truncate">' + escHtml(w.title) + '</div>' +
+              '<div class="flex flex-wrap items-center gap-1.5 mt-1">' +
+                '<span class="px-2 py-0.5 rounded-full text-xs bg-surface ' + pc + '">' + escHtml(w.priority || "Medium") + '</span>' +
+                kindBadge +
+                doneBadge +
+              '</div>' +
+            '</div>' +
+            toggleBtn +
           '</div>' +
-          '<div class="h-2 w-full rounded-full bg-surface overflow-hidden">' +
-            '<div class="h-full ' + barColor + ' rounded-full transition-all" style="width:' + pct + '%"></div>' +
+          '<div class="mt-2">' +
+            '<div class="flex items-center justify-between text-xs mb-1">' +
+              '<span class="text-slate-300">' + progressLabel + '</span>' +
+              '<span class="text-muted">' + pct + '%</span>' +
+            '</div>' +
+            '<div class="h-1.5 w-full rounded-full bg-surface overflow-hidden">' +
+              '<div class="h-full ' + barColor + ' rounded-full transition-all" style="width:' + pct + '%"></div>' +
+            '</div>' +
           '</div>' +
-          toggleButton +
+          notesHtml +
         '</div>' +
       '</div>'
     );
   }
 
-  // Film toggle handler
+  // Notes expand/collapse
+  var noteEls = host.querySelectorAll(".notes-text");
+  for (var n = 0; n < noteEls.length; n++) {
+    noteEls[n].addEventListener("click", function() {
+      var expanded = this.getAttribute("data-expanded") === "true";
+      if (expanded) {
+        this.classList.remove("line-clamp-none");
+        this.classList.add("line-clamp-2");
+        this.setAttribute("data-expanded", "false");
+      } else {
+        this.classList.remove("line-clamp-2");
+        this.classList.add("line-clamp-none");
+        this.setAttribute("data-expanded", "true");
+      }
+    });
+  }
+
+  // Toggle done
   var toggleBtns = host.querySelectorAll("[data-toggle]");
   for (var j = 0; j < toggleBtns.length; j++) {
-    toggleBtns[j].addEventListener("click", function() {
+    toggleBtns[j].addEventListener("click", function(e) {
+      e.stopPropagation();
       var id = this.getAttribute("data-toggle");
       for (var k = 0; k < WATCHLIST.length; k++) {
         if (String(WATCHLIST[k].id) === String(id)) {
@@ -283,6 +495,21 @@ function renderWatchlist() {
       }
       renderWatchlist();
       renderStats();
+    });
+  }
+
+  // Load more
+  if (showing < total) {
+    $("wlLoadMore").classList.remove("hidden");
+    $("wlShowing").textContent = "Showing " + showing + " of " + total;
+  } else {
+    $("wlLoadMore").classList.add("hidden");
+  }
+
+  // Fetch missing posters
+  if (titlesToFetch.length) {
+    fetchPostersForTitles(titlesToFetch, function() {
+      renderWatchlist();
     });
   }
 }
@@ -375,7 +602,6 @@ function closeLogModal() {
 
 function openWatchlistModal() {
   $("modalWatchlist").classList.remove("hidden");
-  // Reset kind-dependent fields
   updateWatchlistKindFields();
 }
 
@@ -481,6 +707,8 @@ function sync() {
       if (!resp.ok) throw new Error(resp.error || "Sync failed");
       LOG = resp.log || [];
       WATCHLIST = resp.watchlist || [];
+      logVisible = LOG_PAGE_SIZE;
+      wlVisible = WL_PAGE_SIZE;
       renderLog();
       renderWatchlist();
       renderStats();
@@ -492,6 +720,9 @@ function sync() {
 
 // ====== INIT ======
 function init() {
+  // Load poster cache from localStorage
+  loadPosterCache();
+
   // Navigation
   var navBtns = document.querySelectorAll(".nav-btn");
   for (var i = 0; i < navBtns.length; i++) {
@@ -501,12 +732,22 @@ function init() {
     });
   }
 
-  // Filters -> rerender
+  // Filters -> rerender (also reset pagination)
   var filterIds = ["fSearch", "fType", "fPlatform", "fRepeat", "fMinRating", "fFrom", "fTo"];
   for (var j = 0; j < filterIds.length; j++) {
-    $(filterIds[j]).addEventListener("input", renderLog);
-    $(filterIds[j]).addEventListener("change", renderLog);
+    $(filterIds[j]).addEventListener("input", function() { logVisible = LOG_PAGE_SIZE; renderLog(); });
+    $(filterIds[j]).addEventListener("change", function() { logVisible = LOG_PAGE_SIZE; renderLog(); });
   }
+
+  // Load more buttons
+  $("btnLogMore").addEventListener("click", function() {
+    logVisible += LOG_PAGE_SIZE;
+    renderLog();
+  });
+  $("btnWlMore").addEventListener("click", function() {
+    wlVisible += WL_PAGE_SIZE;
+    renderWatchlist();
+  });
 
   // Add to Log modal
   $("homeAddLog").addEventListener("click", openLogModal);
