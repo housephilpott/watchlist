@@ -76,17 +76,19 @@ function apiGet(path) {
   });
 }
 
+
 function apiPost(path, body) {
   var payload = Object.assign({ path: path }, body);
   return fetch(API_BASE, {
     method: "POST",
-    headers: { "Content-Type": "text/plain", "Accept": "application/json" },
+    redirect: "follow",
     body: JSON.stringify(payload)
   }).then(function(res) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     return res.json();
   });
 }
+
 
 // ====== POSTER CACHE ======
 function loadPosterCache() {
