@@ -14,6 +14,7 @@ function showError(msg) {
   if (!msg) { el.classList.add("hidden"); el.textContent = ""; return; }
   el.textContent = msg;
   el.classList.remove("hidden");
+  setTimeout(function() { el.classList.add("hidden"); }, 6000);
 }
 
 function norm(s) { return String(s || "").trim().toLowerCase(); }
@@ -71,9 +72,9 @@ function apiPost(path, body) {
   });
 }
 
-// ====== RENDER: TABS ======
+// ====== NAVIGATION ======
 function showTab(name) {
-  ["log", "watchlist", "stats"].forEach(function(t) {
+  ["home", "log", "watchlist", "stats"].forEach(function(t) {
     var el = $("tab-" + t);
     if (t === name) {
       el.classList.remove("hidden");
@@ -81,6 +82,8 @@ function showTab(name) {
       el.classList.add("hidden");
     }
   });
+  // Scroll to top on nav
+  window.scrollTo(0, 0);
 }
 
 // ====== FILTER + LOG TABLE ======
@@ -127,7 +130,7 @@ function renderLog() {
   $("count").textContent = "(" + data.length + ")";
 
   if (!data.length) {
-    rows.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-slate-500">No matches. Try clearing filters.</td></tr>';
+    rows.innerHTML = '<tr><td colspan="10" class="p-6 text-center text-muted">No matches. Try clearing filters.</td></tr>';
     return;
   }
 
@@ -136,27 +139,27 @@ function renderLog() {
     var t = inferType(r.season, r.episode);
     var typePill;
     if (t === "movie") {
-      typePill = '<span class="px-2 py-1 rounded-full text-xs bg-indigo-600 text-white">Movie</span>';
+      typePill = '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Movie</span>';
     } else if (t === "special") {
-      typePill = '<span class="px-2 py-1 rounded-full text-xs bg-fuchsia-600 text-white">Special</span>';
+      typePill = '<span class="px-2 py-0.5 rounded-full text-xs bg-fuchsia-500/20 text-fuchsia-300">Special</span>';
     } else {
-      typePill = '<span class="px-2 py-1 rounded-full text-xs bg-slate-200 text-slate-800">Episode</span>';
+      typePill = '<span class="px-2 py-0.5 rounded-full text-xs bg-slate-500/20 text-slate-300">Episode</span>';
     }
 
-    var repeatBadge = r.repeat ? '<span class="px-2 py-1 rounded-full text-xs bg-slate-200">[r]</span>' : "";
+    var repeatBadge = r.repeat ? '<span class="px-2 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300">[r]</span>' : "";
 
     rows.insertAdjacentHTML("beforeend",
-      '<tr class="border-t hover:bg-slate-50">' +
-        '<td class="p-3 whitespace-nowrap">' + escHtml(r.dateViewed) + '</td>' +
-        '<td class="p-3 font-medium">' + escHtml(r.title) + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + escHtml(r.season) + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + escHtml(r.episode) + '</td>' +
-        '<td class="p-3">' + escHtml(r.episodeTitle) + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + escHtml(r.platform) + '</td>' +
+      '<tr class="border-t border-faint/30 hover:bg-surface/50">' +
+        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.dateViewed) + '</td>' +
+        '<td class="p-3 font-medium text-white">' + escHtml(r.title) + '</td>' +
+        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.season) + '</td>' +
+        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.episode) + '</td>' +
+        '<td class="p-3 text-slate-300">' + escHtml(r.episodeTitle) + '</td>' +
+        '<td class="p-3 whitespace-nowrap text-muted">' + escHtml(r.platform) + '</td>' +
         '<td class="p-3">' + typePill + '</td>' +
         '<td class="p-3">' + repeatBadge + '</td>' +
-        '<td class="p-3 whitespace-nowrap">' + stars(r.rating) + '</td>' +
-        '<td class="p-3 min-w-[280px]">' + escHtml(r.notes) + '</td>' +
+        '<td class="p-3 whitespace-nowrap text-amber-400">' + stars(r.rating) + '</td>' +
+        '<td class="p-3 min-w-[240px] text-slate-400">' + escHtml(r.notes) + '</td>' +
       '</tr>'
     );
   }
@@ -209,6 +212,11 @@ function renderWatchlist() {
   host.innerHTML = "";
   var list = computeWatchlistProgress();
 
+  if (!list.length) {
+    host.innerHTML = '<div class="bg-card rounded-2xl p-6 text-center text-muted">No items in your watchlist yet.</div>';
+    return;
+  }
+
   for (var i = 0; i < list.length; i++) {
     var w = list[i];
     var total = Number(w.totalEpisodes || 0);
@@ -217,41 +225,44 @@ function renderWatchlist() {
 
     var badge;
     if (norm(w.kind) === "film") {
-      badge = '<span class="px-2 py-1 rounded-full text-xs bg-indigo-600 text-white">Film</span>';
+      badge = '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Film</span>';
     } else {
-      badge = '<span class="px-2 py-1 rounded-full text-xs bg-emerald-600 text-white">Season ' + escHtml(w.season) + '</span>';
+      badge = '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">Season ' + escHtml(w.season) + '</span>';
     }
 
     var doneBadge = w.watched
-      ? '<span class="px-2 py-1 rounded-full text-xs bg-green-600 text-white">Done</span>'
+      ? '<span class="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-300">Done</span>'
       : "";
 
+    var prioColor = { "High": "text-red-400", "Medium": "text-amber-400", "Low": "text-slate-400" };
+    var pc = prioColor[w.priority] || "text-muted";
+
     var toggleButton = norm(w.kind) === "film"
-      ? '<button data-toggle="' + escHtml(w.id) + '" class="mt-2 w-full px-3 py-2 rounded-2xl border bg-white">Toggle done</button>'
+      ? '<button data-toggle="' + escHtml(w.id) + '" class="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Toggle done</button>'
       : "";
 
     var progressLabel = norm(w.kind) === "film"
       ? (w.watched ? "Watched" : "Not watched")
       : (done + "/" + total + " eps");
 
+    var barColor = w.watched ? "bg-green-500" : "bg-accent";
+
     host.insertAdjacentHTML("beforeend",
-      '<div class="bg-white rounded-2xl border shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">' +
-        '<div class="space-y-1">' +
-          '<div class="flex flex-wrap items-center gap-2">' +
-            '<div class="text-base font-semibold">' + escHtml(w.title) + '</div>' +
-            '<span class="px-2 py-1 rounded-full text-xs bg-slate-200">' + escHtml(w.priority || "Medium") + '</span>' +
-            badge +
-            doneBadge +
-          '</div>' +
-          '<div class="text-sm text-slate-600">' + escHtml(w.notes) + '</div>' +
+      '<div class="bg-card rounded-2xl p-4 space-y-3">' +
+        '<div class="flex flex-wrap items-center gap-2">' +
+          '<div class="font-semibold text-white">' + escHtml(w.title) + '</div>' +
+          '<span class="px-2 py-0.5 rounded-full text-xs bg-surface ' + pc + '">' + escHtml(w.priority || "Medium") + '</span>' +
+          badge +
+          doneBadge +
         '</div>' +
-        '<div class="min-w-[240px]">' +
-          '<div class="flex items-center justify-between text-sm mb-2">' +
-            '<span>' + progressLabel + '</span>' +
-            '<span class="text-slate-500">' + pct + '%</span>' +
+        (w.notes ? '<div class="text-sm text-muted">' + escHtml(w.notes) + '</div>' : '') +
+        '<div>' +
+          '<div class="flex items-center justify-between text-sm mb-1.5">' +
+            '<span class="text-slate-300">' + progressLabel + '</span>' +
+            '<span class="text-muted">' + pct + '%</span>' +
           '</div>' +
-          '<div class="h-2 w-full rounded-full bg-slate-200 overflow-hidden">' +
-            '<div class="h-full bg-slate-900" style="width:' + pct + '%"></div>' +
+          '<div class="h-2 w-full rounded-full bg-surface overflow-hidden">' +
+            '<div class="h-full ' + barColor + ' rounded-full transition-all" style="width:' + pct + '%"></div>' +
           '</div>' +
           toggleButton +
         '</div>' +
@@ -319,22 +330,38 @@ function renderStats() {
     type: "bar",
     data: {
       labels: labels,
-      datasets: [{ label: "Items", data: data, backgroundColor: "#0f172a", borderRadius: 6 }]
+      datasets: [{
+        label: "Items",
+        data: data,
+        backgroundColor: "#f59e0b",
+        borderRadius: 4,
+        borderSkipped: false
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 } },
-        x: { ticks: { maxRotation: 45, minRotation: 45 } }
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0, color: "#94a3b8" },
+          grid: { color: "#334155" }
+        },
+        x: {
+          ticks: { maxRotation: 45, minRotation: 45, color: "#94a3b8", font: { size: 10 } },
+          grid: { display: false }
+        }
       }
     }
   });
 }
 
-// ====== MODAL / ADD ======
-function openModal() {
-  $("modal").classList.remove("hidden");
+// ====== MODALS ======
+function openLogModal() {
+  $("modalLog").classList.remove("hidden");
   var today = new Date();
   var yyyy = today.getFullYear();
   var mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -342,11 +369,32 @@ function openModal() {
   $("aDate").value = yyyy + "-" + mm + "-" + dd;
 }
 
-function closeModal() {
-  $("modal").classList.add("hidden");
+function closeLogModal() {
+  $("modalLog").classList.add("hidden");
 }
 
-function saveEntry() {
+function openWatchlistModal() {
+  $("modalWatchlist").classList.remove("hidden");
+  // Reset kind-dependent fields
+  updateWatchlistKindFields();
+}
+
+function closeWatchlistModal() {
+  $("modalWatchlist").classList.add("hidden");
+}
+
+function updateWatchlistKindFields() {
+  var kind = $("wKind").value;
+  if (kind === "film") {
+    $("wSeasonGroup").classList.add("hidden");
+    $("wTotalGroup").classList.add("hidden");
+  } else {
+    $("wSeasonGroup").classList.remove("hidden");
+    $("wTotalGroup").classList.remove("hidden");
+  }
+}
+
+function saveLogEntry() {
   showError("");
 
   var row = {
@@ -371,7 +419,7 @@ function saveEntry() {
       return sync();
     })
     .then(function() {
-      closeModal();
+      closeLogModal();
       $("aTitle").value = "";
       $("aSeason").value = "";
       $("aEpisode").value = "";
@@ -380,6 +428,45 @@ function saveEntry() {
       $("aRepeat").checked = false;
       $("aRating").value = "";
       $("aNotes").value = "";
+    })
+    .catch(function(e) {
+      showError(String(e));
+    });
+}
+
+function saveWatchlistEntry() {
+  showError("");
+
+  var kind = $("wKind").value;
+  var isFilm = kind === "film";
+
+  var row = {
+    kind: kind,
+    title: $("wTitle").value.trim(),
+    season: isFilm ? "movie" : ($("wSeason").value.trim() || "1"),
+    totalEpisodes: isFilm ? 1 : (Number($("wTotal").value) || 0),
+    priority: $("wPriority").value,
+    notes: $("wNotes").value.trim(),
+    manualDone: false
+  };
+
+  if (!row.title) { showError("Title is required."); return; }
+  if (!isFilm && !row.totalEpisodes) { showError("Total episodes is required for seasons."); return; }
+
+  apiPost("addWatchlist", { row: row })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error(resp.error || "Save failed");
+      return sync();
+    })
+    .then(function() {
+      closeWatchlistModal();
+      $("wTitle").value = "";
+      $("wKind").value = "season";
+      $("wSeason").value = "";
+      $("wTotal").value = "";
+      $("wPriority").value = "Medium";
+      $("wNotes").value = "";
+      updateWatchlistKindFields();
     })
     .catch(function(e) {
       showError(String(e));
@@ -405,11 +492,12 @@ function sync() {
 
 // ====== INIT ======
 function init() {
-  // Tabs
-  var tabBtns = document.querySelectorAll(".tab");
-  for (var i = 0; i < tabBtns.length; i++) {
-    tabBtns[i].addEventListener("click", function() {
-      showTab(this.getAttribute("data-tab"));
+  // Navigation
+  var navBtns = document.querySelectorAll(".nav-btn");
+  for (var i = 0; i < navBtns.length; i++) {
+    navBtns[i].addEventListener("click", function() {
+      var target = this.getAttribute("data-nav");
+      if (target) showTab(target);
     });
   }
 
@@ -420,10 +508,10 @@ function init() {
     $(filterIds[j]).addEventListener("change", renderLog);
   }
 
-  // Modal
-  $("btnAdd").addEventListener("click", openModal);
-  $("modalClose").addEventListener("click", closeModal);
-  $("btnSave").addEventListener("click", saveEntry);
+  // Add to Log modal
+  $("homeAddLog").addEventListener("click", openLogModal);
+  $("modalLogClose").addEventListener("click", closeLogModal);
+  $("btnSaveLog").addEventListener("click", saveLogEntry);
 
   $("btnSetMovie").addEventListener("click", function() {
     $("aSeason").value = "movie";
@@ -434,11 +522,17 @@ function init() {
     $("aEpisode").value = "special";
   });
 
+  // Add to Watchlist modal
+  $("homeAddWatchlist").addEventListener("click", openWatchlistModal);
+  $("modalWatchlistClose").addEventListener("click", closeWatchlistModal);
+  $("btnSaveWatchlist").addEventListener("click", saveWatchlistEntry);
+  $("wKind").addEventListener("change", updateWatchlistKindFields);
+
   // Sync
-  $("btnSync").addEventListener("click", sync);
+  $("homeSync").addEventListener("click", sync);
 
   // Initial load
-  showTab("log");
+  showTab("home");
   sync();
 }
 
