@@ -13,315 +13,158 @@
       theme: {
         extend: {
           colors: {
-            base: '#0f172a',
-            surface: '#1e293b',
-            card: '#334155',
-            accent: '#f59e0b',
-            accentHover: '#d97706',
-            muted: '#94a3b8',
-            faint: '#475569'
+            base: '#0f172a', surface: '#1e293b', card: '#334155',
+            accent: '#f59e0b', accentHover: '#d97706', muted: '#94a3b8', faint: '#475569'
           }
         }
       }
     }
   </script>
   <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    ::-webkit-scrollbar { height: 6px; width: 6px; }
-    ::-webkit-scrollbar-track { background: #1e293b; }
-    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
-    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
-    .line-clamp-2 {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .line-clamp-none {
-      display: block;
-      -webkit-line-clamp: unset;
-      overflow: visible;
-    }
+    body{-webkit-tap-highlight-color:transparent}
+    html{scroll-behavior:smooth}
+    ::-webkit-scrollbar{height:6px;width:6px}
+    ::-webkit-scrollbar-track{background:#1e293b}
+    ::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+    input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.7)}
+    .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .line-clamp-none{display:block;-webkit-line-clamp:unset;overflow:visible}
+    .cast-scroll::-webkit-scrollbar{height:4px}
   </style>
 </head>
 <body class="bg-base text-slate-200 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-  <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
-
-    <!-- ========== HOME ========== -->
-    <section id="tab-home">
-      <div class="text-center pt-6 pb-4">
-        <h1 class="text-4xl font-bold tracking-tight text-white">Watch Log</h1>
-        <p class="text-sm text-muted mt-1">Track everything you watch.</p>
-      </div>
-
-      <div class="space-y-3 mt-6">
-        <button data-nav="log" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
-          <span class="text-3xl">&#128250;</span>
-          <div>
-            <div class="font-semibold text-white text-lg">Viewing Log</div>
-            <div class="text-sm text-muted">Browse and filter everything you have watched.</div>
-          </div>
-        </button>
-
-        <button data-nav="watchlist" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
-          <span class="text-3xl">&#128203;</span>
-          <div>
-            <div class="font-semibold text-white text-lg">Watchlist</div>
-            <div class="text-sm text-muted">Seasons and films you want to watch next.</div>
-          </div>
-        </button>
-
-        <button data-nav="stats" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
-          <span class="text-3xl">&#128200;</span>
-          <div>
-            <div class="font-semibold text-white text-lg">Stats</div>
-            <div class="text-sm text-muted">Monthly viewing totals since January 2018.</div>
-          </div>
-        </button>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3 mt-6">
-        <button id="homeAddLog" class="bg-accent hover:bg-accentHover text-base font-semibold rounded-2xl p-4 text-center transition active:scale-[0.98]">
-          + Add to Log
-        </button>
-        <button id="homeAddWatchlist" class="bg-card hover:bg-faint text-white font-semibold rounded-2xl p-4 text-center border border-faint transition active:scale-[0.98]">
-          + Watchlist
-        </button>
-      </div>
-
-      <div class="mt-6 text-center">
-        <button id="homeSync" class="text-sm text-muted hover:text-white transition">&#x21bb; Sync with Google Sheets</button>
-      </div>
-    </section>
-
-    <!-- ========== VIEWING LOG ========== -->
-    <section id="tab-log" class="hidden">
-      <div class="flex items-center gap-3 mb-4">
-        <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
-        <h2 class="text-xl font-bold text-white">Viewing Log</h2>
-        <span id="count" class="text-sm text-muted"></span>
-      </div>
-
-      <details class="bg-card rounded-2xl mb-4">
-        <summary class="p-4 font-semibold text-sm cursor-pointer select-none">Filters</summary>
-        <div class="px-4 pb-4 grid gap-3 grid-cols-2">
-          <div class="col-span-2">
-            <label class="text-xs text-muted">Search title / episode / notes</label>
-            <input id="fSearch" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. Frieren, Wes Anderson..." />
-          </div>
-          <div>
-            <label class="text-xs text-muted">Type</label>
-            <select id="fType" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-              <option value="all">All</option>
-              <option value="episode">Episodes</option>
-              <option value="movie">Movies</option>
-              <option value="special">Specials</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-muted">Platform</label>
-            <select id="fPlatform" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-              <option value="all">All</option>
-              <option value="Plex">Plex</option>
-              <option value="Dropout">Dropout</option>
-              <option value="Netflix">Netflix</option>
-              <option value="TVNZ+">TVNZ+</option>
-              <option value="Disney+">Disney+</option>
-              <option value="Prime Video">Prime Video</option>
-              <option value="Apple TV+">Apple TV+</option>
-              <option value="Neon">Neon</option>
-              <option value="YouTube">YouTube</option>
-              <option value="Cinema">Cinema</option>
-              <option value="Blu-ray/DVD">Blu-ray/DVD</option>
-              <option value="Online">Online</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-muted">Repeat</label>
-            <select id="fRepeat" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-              <option value="all">All</option>
-              <option value="first">First-time</option>
-              <option value="repeat">Repeat [r]</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-muted">Min rating</label>
-            <select id="fMinRating" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-              <option value="0">0+</option>
-              <option value="1">1+</option>
-              <option value="2">2+</option>
-              <option value="3">3+</option>
-              <option value="4">4+</option>
-              <option value="5">5</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-muted">From</label>
-            <input id="fFrom" type="date" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none" />
-          </div>
-          <div>
-            <label class="text-xs text-muted">To</label>
-            <input id="fTo" type="date" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none" />
-          </div>
-        </div>
-      </details>
-
-      <div id="logTiles" class="space-y-3"></div>
-      <div id="logLoadMore" class="hidden mt-4 text-center">
-        <div id="logShowing" class="text-xs text-muted mb-2"></div>
-        <button id="btnLogMore" class="px-6 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Load more</button>
-      </div>
-      <div id="logEmpty" class="hidden bg-card rounded-2xl p-6 text-center text-muted">No matches. Try clearing filters.</div>
-    </section>
-
-    <!-- ========== WATCHLIST ========== -->
-    <section id="tab-watchlist" class="hidden">
-      <div class="flex items-center gap-3 mb-4">
-        <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
-        <h2 class="text-xl font-bold text-white">Watchlist</h2>
-      </div>
-      <p class="text-sm text-muted mb-4">
-        Season progress auto-updates from your log. Films mark as done when logged or toggled manually.
-      </p>
-      <div id="watchlistTiles" class="space-y-3"></div>
-      <div id="wlLoadMore" class="hidden mt-4 text-center">
-        <div id="wlShowing" class="text-xs text-muted mb-2"></div>
-        <button id="btnWlMore" class="px-6 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Load more</button>
-      </div>
-      <div id="wlEmpty" class="hidden bg-card rounded-2xl p-6 text-center text-muted">No items in your watchlist yet.</div>
-    </section>
-
-    <!-- ========== STATS ========== -->
-    <section id="tab-stats" class="hidden">
-      <div class="flex items-center gap-3 mb-4">
-        <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
-        <h2 class="text-xl font-bold text-white">Stats</h2>
-      </div>
-      <div class="bg-card rounded-2xl p-4">
-        <h3 class="font-semibold text-white mb-3">Items watched per month</h3>
-        <div class="h-[320px]">
-          <canvas id="chart"></canvas>
-        </div>
-        <p class="text-xs text-muted mt-3">Monthly totals from January 2018 to now.</p>
-      </div>
-    </section>
-  </div>
-
-  <!-- ========== ADD TO LOG MODAL ========== -->
-  <div id="modalLog" class="hidden fixed inset-0 bg-black/60 z-50 overflow-y-auto">
-    <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold text-lg text-white">Add to Log</h3>
-        <button id="modalLogClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
-      </div>
-      <div class="grid gap-3 grid-cols-2">
-        <div>
-          <label class="text-xs text-muted">Date viewed</label>
-          <input id="aDate" type="date" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none" />
-        </div>
-        <div class="flex items-end pb-1">
-          <label class="flex items-center gap-2 text-sm text-white">
-            <input id="aRepeat" type="checkbox" class="rounded" />
-            Repeat ([r])
-          </label>
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-muted">Title</label>
-          <input id="aTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="Show or film name" />
-        </div>
-        <div>
-          <label class="text-xs text-muted">Season</label>
-          <input id="aSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. 2" />
-        </div>
-        <div>
-          <label class="text-xs text-muted">Episode</label>
-          <input id="aEpisode" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. 7" />
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-muted">Episode Title</label>
-          <input id="aEpTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. The One Where..." />
-        </div>
-        <div class="col-span-2 flex gap-2">
-          <button id="btnSetMovie" class="flex-1 px-3 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Set as movie</button>
-          <button id="btnSetSpecial" class="flex-1 px-3 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition active:scale-[0.98]">Set as special</button>
-        </div>
-        <div>
-          <label class="text-xs text-muted">Platform</label>
-          <select id="aPlatform" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-            <option value=""></option>
-            <option value="Netflix">Netflix</option>
-            <option value="TVNZ+">TVNZ+</option>
-            <option value="Disney+">Disney+</option>
-            <option value="Prime Video">Prime Video</option>
-            <option value="Apple TV+">Apple TV+</option>
-            <option value="Neon">Neon</option>
-            <option value="YouTube">YouTube</option>
-            <option value="Cinema">Cinema</option>
-            <option value="Blu-ray/DVD">Blu-ray/DVD</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-muted">Rating (0-5)</label>
-          <input id="aRating" type="number" min="0" max="5" step="1" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none" />
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-muted">Notes</label>
-          <textarea id="aNotes" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none min-h-[80px]" placeholder="Anything you want to remember..."></textarea>
-        </div>
-      </div>
-      <button id="btnSaveLog" class="w-full bg-accent hover:bg-accentHover text-base font-semibold rounded-xl py-3 transition active:scale-[0.98]">Save</button>
+  <!-- HOME -->
+  <section id="tab-home">
+    <div class="text-center pt-6 pb-4">
+      <h1 class="text-4xl font-bold tracking-tight text-white">Watch Log</h1>
+      <p class="text-sm text-muted mt-1">Track everything you watch.</p>
     </div>
-  </div>
-
-  <!-- ========== ADD TO WATCHLIST MODAL ========== -->
-  <div id="modalWatchlist" class="hidden fixed inset-0 bg-black/60 z-50 overflow-y-auto">
-    <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold text-lg text-white">Add to Watchlist</h3>
-        <button id="modalWatchlistClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
-      </div>
-      <div class="grid gap-3 grid-cols-2">
-        <div class="col-span-2">
-          <label class="text-xs text-muted">Title</label>
-          <input id="wTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="Show or film name" />
-        </div>
-        <div>
-          <label class="text-xs text-muted">Kind</label>
-          <select id="wKind" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-            <option value="season">Season</option>
-            <option value="film">Film</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-muted">Priority</label>
-          <select id="wPriority" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none">
-            <option value="High">High</option>
-            <option value="Medium" selected>Medium</option>
-            <option value="Low">Low</option>
-          </select>
-        </div>
-        <div id="wSeasonGroup">
-          <label class="text-xs text-muted">Season number</label>
-          <input id="wSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. 1" />
-        </div>
-        <div id="wTotalGroup">
-          <label class="text-xs text-muted">Total episodes</label>
-          <input id="wTotal" type="number" min="1" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="e.g. 10" />
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-muted">Notes</label>
-          <textarea id="wNotes" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none min-h-[80px]" placeholder="Why you want to watch it..."></textarea>
-        </div>
-      </div>
-      <button id="btnSaveWatchlist" class="w-full bg-accent hover:bg-accentHover text-base font-semibold rounded-xl py-3 transition active:scale-[0.98]">Save</button>
+    <div class="space-y-3 mt-6">
+      <button data-nav="log" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
+        <span class="text-3xl">&#128250;</span>
+        <div><div class="font-semibold text-white text-lg">Viewing Log</div><div class="text-sm text-muted">Browse and filter everything you have watched.</div></div>
+      </button>
+      <button data-nav="watchlist" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
+        <span class="text-3xl">&#128203;</span>
+        <div><div class="font-semibold text-white text-lg">Watchlist</div><div class="text-sm text-muted">Seasons and films you want to watch next.</div></div>
+      </button>
+      <button data-nav="stats" class="nav-btn w-full bg-card hover:bg-faint rounded-2xl p-5 text-left flex items-center gap-4 transition active:scale-[0.98]">
+        <span class="text-3xl">&#128200;</span>
+        <div><div class="font-semibold text-white text-lg">Stats</div><div class="text-sm text-muted">Monthly viewing totals since January 2018.</div></div>
+      </button>
     </div>
+    <div class="grid grid-cols-2 gap-3 mt-6">
+      <button id="homeAddLog" class="bg-accent hover:bg-accentHover text-base font-semibold rounded-2xl p-4 text-center transition active:scale-[0.98]">+ Add to Log</button>
+      <button id="homeAddWatchlist" class="bg-card hover:bg-faint text-white font-semibold rounded-2xl p-4 text-center border border-faint transition active:scale-[0.98]">+ Watchlist</button>
+    </div>
+    <div class="mt-6 text-center"><button id="homeSync" class="text-sm text-muted hover:text-white transition">&#x21bb; Sync with Google Sheets</button></div>
+  </section>
+
+  <!-- LOG -->
+  <section id="tab-log" class="hidden">
+    <div class="flex items-center gap-3 mb-4">
+      <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
+      <h2 class="text-xl font-bold text-white">Viewing Log</h2>
+      <span id="count" class="text-sm text-muted"></span>
+    </div>
+    <details class="bg-card rounded-2xl mb-4">
+      <summary class="p-4 font-semibold text-sm cursor-pointer select-none">Filters</summary>
+      <div class="px-4 pb-4 grid gap-3 grid-cols-2">
+        <div class="col-span-2"><label class="text-xs text-muted">Search</label><input id="fSearch" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white placeholder-faint focus:border-accent focus:outline-none" placeholder="title / episode / notes..." /></div>
+        <div><label class="text-xs text-muted">Type</label><select id="fType" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white"><option value="all">All</option><option value="episode">Episodes</option><option value="movie">Movies</option><option value="special">Specials</option></select></div>
+        <div><label class="text-xs text-muted">Platform</label><select id="fPlatform" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white"><option value="all">All</option><option>Netflix</option><option>TVNZ+</option><option>Disney+</option><option>Prime Video</option><option>Apple TV+</option><option>Neon</option><option>YouTube</option><option>Plex</option><option>Dropout</option><option>Online</option><option>Cinema</option><option>Blu-ray/DVD</option><option>Other</option></select></div>
+        <div><label class="text-xs text-muted">Repeat</label><select id="fRepeat" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white"><option value="all">All</option><option value="first">First-time</option><option value="repeat">Repeat [r]</option></select></div>
+        <div><label class="text-xs text-muted">Min rating</label><select id="fMinRating" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white"><option value="0">0+</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5</option></select></div>
+        <div><label class="text-xs text-muted">From</label><input id="fFrom" type="date" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white" /></div>
+        <div><label class="text-xs text-muted">To</label><input id="fTo" type="date" class="mt-1 w-full rounded-xl bg-surface border border-faint px-3 py-2.5 text-sm text-white" /></div>
+      </div>
+    </details>
+    <div id="logTiles" class="space-y-3"></div>
+    <div id="logLoadMore" class="hidden mt-4 text-center"><div id="logShowing" class="text-xs text-muted mb-2"></div><button id="btnLogMore" class="px-6 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition">Load more</button></div>
+    <div id="logEmpty" class="hidden bg-card rounded-2xl p-6 text-center text-muted">No matches.</div>
+  </section>
+
+  <!-- WATCHLIST -->
+  <section id="tab-watchlist" class="hidden">
+    <div class="flex items-center gap-3 mb-4">
+      <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
+      <h2 class="text-xl font-bold text-white">Watchlist</h2>
+    </div>
+    <p class="text-sm text-muted mb-4">Season progress auto-updates from your log. Films mark as done when logged or toggled.</p>
+    <div id="watchlistTiles" class="space-y-3"></div>
+    <div id="wlLoadMore" class="hidden mt-4 text-center"><div id="wlShowing" class="text-xs text-muted mb-2"></div><button id="btnWlMore" class="px-6 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition">Load more</button></div>
+    <div id="wlEmpty" class="hidden bg-card rounded-2xl p-6 text-center text-muted">No items yet.</div>
+  </section>
+
+  <!-- STATS -->
+  <section id="tab-stats" class="hidden">
+    <div class="flex items-center gap-3 mb-4">
+      <button data-nav="home" class="nav-btn text-accent text-2xl leading-none">&larr;</button>
+      <h2 class="text-xl font-bold text-white">Stats</h2>
+    </div>
+    <div class="bg-card rounded-2xl p-4">
+      <h3 class="font-semibold text-white mb-3">Items watched per month</h3>
+      <div class="h-[320px]"><canvas id="chart"></canvas></div>
+      <p class="text-xs text-muted mt-3">Monthly totals from January 2018 to now.</p>
+    </div>
+  </section>
+</div>
+
+<!-- ADD/EDIT LOG MODAL -->
+<div id="modalLog" class="hidden fixed inset-0 bg-black/60 z-50 overflow-y-auto">
+  <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 id="modalLogTitle" class="font-bold text-lg text-white">Add to Log</h3>
+      <button id="modalLogClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
+    </div>
+    <input type="hidden" id="aEditId" value="" />
+    <div class="grid gap-3 grid-cols-2">
+      <div><label class="text-xs text-muted">Date viewed</label><input id="aDate" type="date" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white" /></div>
+      <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-white"><input id="aRepeat" type="checkbox" class="rounded" /> Repeat ([r])</label></div>
+      <div class="col-span-2"><label class="text-xs text-muted">Title</label><input id="aTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" /></div>
+      <div><label class="text-xs text-muted">Season</label><input id="aSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 2" /></div>
+      <div><label class="text-xs text-muted">Episode</label><input id="aEpisode" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 7" /></div>
+      <div><label class="text-xs text-muted">Episode Title</label><input id="aEpTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. The One Where..." /></div>
+      <div class="flex items-end"><button id="btnAutoFill" class="w-full px-3 py-2.5 rounded-xl bg-card border border-faint text-sm text-accent hover:bg-faint transition">Auto-fill</button></div>
+      <div class="col-span-2 flex gap-2">
+        <button id="btnSetMovie" class="flex-1 px-3 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition">Set as movie</button>
+        <button id="btnSetSpecial" class="flex-1 px-3 py-2.5 rounded-xl bg-card border border-faint text-sm text-white hover:bg-faint transition">Set as special</button>
+      </div>
+      <div><label class="text-xs text-muted">Platform</label><select id="aPlatform" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white"><option value=""></option><option>Netflix</option><option>TVNZ+</option><option>Disney+</option><option>Prime Video</option><option>Apple TV+</option><option>Neon</option><option>YouTube</option><option>Plex</option><option>Dropout</option><option>Online</option><option>Cinema</option><option>Blu-ray/DVD</option><option>Other</option></select></div>
+      <div><label class="text-xs text-muted">Rating (0-5)</label><input id="aRating" type="number" min="0" max="5" step="1" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white" /></div>
+      <div class="col-span-2"><label class="text-xs text-muted">Notes</label><textarea id="aNotes" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint min-h-[80px]" placeholder="Anything you want to remember..."></textarea></div>
+    </div>
+    <button id="btnSaveLog" class="w-full bg-accent hover:bg-accentHover text-base font-semibold rounded-xl py-3 transition">Save</button>
   </div>
+</div>
 
-  <div id="error" class="hidden fixed bottom-4 left-4 right-4 max-w-lg mx-auto rounded-2xl border border-red-500/30 bg-red-950/90 p-3 text-sm text-red-300 z-50"></div>
+<!-- ADD WATCHLIST MODAL -->
+<div id="modalWatchlist" class="hidden fixed inset-0 bg-black/60 z-50 overflow-y-auto">
+  <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-lg text-white">Add to Watchlist</h3>
+      <button id="modalWatchlistClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
+    </div>
+    <div class="grid gap-3 grid-cols-2">
+      <div class="col-span-2"><label class="text-xs text-muted">Title</label><input id="wTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" /></div>
+      <div><label class="text-xs text-muted">Kind</label><select id="wKind" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white"><option value="season">Season</option><option value="film">Film</option></select></div>
+      <div><label class="text-xs text-muted">Priority</label><select id="wPriority" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select></div>
+      <div id="wSeasonGroup"><label class="text-xs text-muted">Season number</label><input id="wSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 1" /></div>
+      <div id="wTotalGroup"><label class="text-xs text-muted">Total episodes</label><input id="wTotal" type="number" min="1" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 10" /></div>
+      <div class="col-span-2"><label class="text-xs text-muted">Notes</label><textarea id="wNotes" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint min-h-[80px]" placeholder="Why you want to watch it..."></textarea></div>
+    </div>
+    <button id="btnSaveWatchlist" class="w-full bg-accent hover:bg-accentHover text-base font-semibold rounded-xl py-3 transition">Save</button>
+  </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- DETAIL VIEW -->
+<div id="modalDetail" class="hidden fixed inset-0 bg-base z-50 overflow-y-auto">
+  <div class="max-w-3xl mx-auto pb-8" id="detailContent"></div>
+</div>
+
+<div id="error" class="hidden fixed bottom-4 left-4 right-4 max-w-lg mx-auto rounded-2xl border border-red-500/30 bg-red-950/90 p-3 text-sm text-red-300 z-50"></div>
+<script src="app.js"></script>
 </body>
 </html>
