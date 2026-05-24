@@ -489,7 +489,7 @@ function doTmdbPickerSearch(query) {
           if (yr) $("aYear").value = yr;
           closeTmdbPicker();
           showError("");
-        }; })(idx));
+        }; })(b));
       }
     }).catch(function() {
       $("tmdbPickerResults").innerHTML = '<div class="text-center text-red-400 py-4">Search failed. Try again.</div>';
