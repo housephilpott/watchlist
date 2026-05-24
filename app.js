@@ -114,13 +114,27 @@ function genrePills(ids, max) {
 }
 
 // ====== TMDB FETCH ======
+function buildTmdbEntry(f) {
+  var yr = (f.release_date || f.first_air_date || "").substring(0, 4);
+  return {
+    posterUrl: f.poster_path ? TMDB_IMG + f.poster_path : null,
+    overview: f.overview || "",
+    tmdbRating: f.vote_average || 0,
+    genreIds: f.genre_ids || [],
+    mediaType: f.media_type || "",
+    tmdbId: f.id,
+    year: yr,
+    backdropUrl: f.backdrop_path ? TMDB_IMG_LG + f.backdrop_path : null
+  };
+}
+
 function fetchTmdbForTitles(titles, cb) {
   var q = [];
   for (var i = 0; i < titles.length; i++) {
     var k = norm(titles[i]);
     if (k && !tmdbCache[k] && !fetching[k]) { fetching[k] = true; q.push({ key: k, title: titles[i] }); }
   }
-  if (!q.length) return;
+  if (!q.length) { if (cb) cb(); return; }
   var idx = 0;
   function next() {
     if (idx >= q.length) { saveCache(); if (cb) cb(); return; }
@@ -130,7 +144,7 @@ function fetchTmdbForTitles(titles, cb) {
         var f = null;
         if (data.results) { for (var r = 0; r < data.results.length; r++) { if (data.results[r].poster_path) { f = data.results[r]; break; } } }
         if (f) {
-          tmdbCache[item.key] = { posterUrl: TMDB_IMG + f.poster_path, overview: f.overview || "", tmdbRating: f.vote_average || 0, genreIds: f.genre_ids || [], mediaType: f.media_type || "", tmdbId: f.id, backdropUrl: f.backdrop_path ? TMDB_IMG_LG + f.backdrop_path : null };
+          tmdbCache[item.key] = buildTmdbEntry(f);
         } else { tmdbCache[item.key] = { posterUrl: null }; }
         delete fetching[item.key];
       }).catch(function() { tmdbCache[item.key] = { posterUrl: null }; delete fetching[item.key]; })
@@ -138,6 +152,7 @@ function fetchTmdbForTitles(titles, cb) {
   }
   next();
 }
+
 function posterHtml(title, type) {
   var d = getTmdb(title);
   if (d && d.posterUrl) return '<img src="' + escHtml(d.posterUrl) + '" alt="" class="w-20 h-28 object-cover rounded-xl flex-shrink-0" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" /><div class="w-20 h-28 bg-surface rounded-xl items-center justify-center text-3xl select-none flex-shrink-0" style="display:none">' + posterIcon(type) + '</div>';
@@ -154,6 +169,11 @@ function overviewHtml(title) {
   var d = getTmdb(title);
   if (d && d.overview) return '<div class="overview-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer italic" data-expanded="false">' + escHtml(d.overview) + '</div>';
   return "";
+}
+function yearDisplay(row) {
+  var y = row.year || "";
+  if (!y) { var td = getTmdb(row.title); if (td && td.year) y = td.year; }
+  return y ? ' <span class="text-muted font-normal">(' + escHtml(y) + ')</span>' : "";
 }
 
 // ====== NAVIGATION ======
@@ -182,7 +202,7 @@ function getFilteredLog() {
     if (from && dv && dv < from) return false;
     if (to && dv && dv > to) return false;
     if (!s) return true;
-    return (r.title + " " + (r.episodeTitle || "") + " " + (r.notes || "")).toLowerCase().indexOf(s) !== -1;
+    return (r.title + " " + (r.episodeTitle || "") + " " + (r.notes || "") + " " + (r.year || "")).toLowerCase().indexOf(s) !== -1;
   }).sort(function(a, b) { return String(b.dateViewed).localeCompare(String(a.dateViewed)); });
 }
 
@@ -208,7 +228,7 @@ function renderLog() {
       '<button class="edit-btn absolute top-2 right-2 w-7 h-7 rounded-full bg-surface/80 flex items-center justify-center text-xs text-muted hover:text-white transition" data-edit-idx="'+i+'">\u270F</button>'+
       '<div class="flex-shrink-0 cursor-pointer" data-detail-title="'+escHtml(r.title)+'">'+posterHtml(r.title,t)+'</div>'+
       '<div class="flex-1 min-w-0">'+
-        '<div class="font-semibold text-white text-sm leading-snug truncate cursor-pointer hover:underline" data-detail-title="'+escHtml(r.title)+'">'+escHtml(r.title)+'</div>'+
+        '<div class="font-semibold text-white text-sm leading-snug truncate cursor-pointer hover:underline" data-detail-title="'+escHtml(r.title)+'">'+escHtml(r.title)+yearDisplay(r)+'</div>'+
         (se?'<div class="text-xs text-muted mt-0.5">'+se+'</div>':'')+
         (gp?'<div class="flex flex-wrap gap-1 mt-1">'+gp+'</div>':'')+
         '<div class="flex items-center gap-1 mt-1"><span class="text-amber-400 text-xs">'+stars(r.rating)+'</span>'+tmdbRatingHtml(r.title)+(r.platform?' <span class="text-xs text-muted">\u00b7 '+escHtml(r.platform)+'</span>':'')+'</div>'+
@@ -336,7 +356,16 @@ function attachDetailHandlers(host) {
 // ====== DETAIL VIEW ======
 function openDetailView(title) {
   var td = getTmdb(title);
-  if (!td || !td.tmdbId) { showError("No TMDB data for this title."); return; }
+  if (!td || !td.tmdbId) {
+    var key = norm(title);
+    if (key) delete tmdbCache[key];
+    fetchTmdbForTitles([title], function() {
+      var td2 = getTmdb(title);
+      if (td2 && td2.tmdbId) { openDetailView(title); }
+      else { showError("Could not find this title on TMDB."); }
+    });
+    return;
+  }
   var mt = td.mediaType === "movie" ? "movie" : "tv";
   var url = "https://api.themoviedb.org/3/" + mt + "/" + td.tmdbId + "?api_key=" + TMDB_KEY + "&append_to_response=credits";
   $("detailContent").innerHTML = '<div class="p-8 text-center text-muted">Loading...</div>';
@@ -414,11 +443,65 @@ function renderStats() {
   });
 }
 
+// ====== TMDB PICKER ======
+function openTmdbPicker() {
+  var q = $("aTitle").value.trim();
+  $("tmdbPickerSearch").value = q;
+  $("tmdbPickerResults").innerHTML = "";
+  $("modalTmdbPicker").classList.remove("hidden");
+  if (q) doTmdbPickerSearch(q);
+}
+function closeTmdbPicker() { $("modalTmdbPicker").classList.add("hidden"); }
+
+function doTmdbPickerSearch(query) {
+  if (!query) return;
+  $("tmdbPickerResults").innerHTML = '<div class="text-center text-muted py-4">Searching...</div>';
+  fetch(TMDB_SEARCH + "?api_key=" + TMDB_KEY + "&query=" + encodeURIComponent(query) + "&page=1")
+    .then(function(r){return r.json();}).then(function(data) {
+      var results = (data.results || []).filter(function(r) { return r.media_type === "movie" || r.media_type === "tv"; }).slice(0, 10);
+      if (!results.length) { $("tmdbPickerResults").innerHTML = '<div class="text-center text-muted py-4">No results found.</div>'; return; }
+      var h = "";
+      for (var i = 0; i < results.length; i++) {
+        var r = results[i];
+        var nm = r.title || r.name || "Unknown";
+        var yr = (r.release_date || r.first_air_date || "").substring(0, 4);
+        var mt = r.media_type === "movie" ? "Movie" : "TV";
+        var pImg = r.poster_path ? '<img src="'+TMDB_IMG+r.poster_path+'" class="w-12 h-16 object-cover rounded-lg flex-shrink-0" />' : '<div class="w-12 h-16 bg-surface rounded-lg flex items-center justify-center text-lg flex-shrink-0">\uD83C\uDFAC</div>';
+        var ov = r.overview ? escHtml(r.overview).substring(0, 120) + (r.overview.length > 120 ? "..." : "") : "";
+        h += '<button class="tmdb-pick-btn w-full text-left bg-card hover:bg-faint rounded-xl p-2.5 flex gap-3 transition" data-pick-idx="'+i+'">' +
+          pImg +
+          '<div class="flex-1 min-w-0">' +
+            '<div class="font-semibold text-white text-sm truncate">'+escHtml(nm)+'</div>' +
+            '<div class="text-xs text-muted">'+(yr?yr+" \u00b7 ":"")+mt+'</div>' +
+            (ov?'<div class="text-xs text-slate-400 mt-0.5 line-clamp-2">'+ov+'</div>':'') +
+          '</div></button>';
+      }
+      $("tmdbPickerResults").innerHTML = h;
+      var btns = $("tmdbPickerResults").querySelectorAll(".tmdb-pick-btn");
+      for (var b = 0; b < btns.length; b++) {
+        btns[b].addEventListener("click", (function(idx) { return function() {
+          var picked = results[idx];
+          var titleKey = norm($("aTitle").value);
+          if (!titleKey) titleKey = norm(picked.title || picked.name);
+          tmdbCache[titleKey] = buildTmdbEntry(picked);
+          saveCache();
+          var yr = (picked.release_date || picked.first_air_date || "").substring(0, 4);
+          if (yr) $("aYear").value = yr;
+          closeTmdbPicker();
+          showError("");
+        }; })(idx));
+      }
+    }).catch(function() {
+      $("tmdbPickerResults").innerHTML = '<div class="text-center text-red-400 py-4">Search failed. Try again.</div>';
+    });
+}
+
 // ====== MODALS ======
 function resetLogModal() {
   $("modalLogTitle").textContent = "Add to Log"; $("btnSaveLog").textContent = "Save"; $("aEditId").value = "";
+  $("btnDeleteLog").classList.add("hidden");
   $("aDate").value = todayYMD(); $("aTitle").value = ""; $("aSeason").value = ""; $("aEpisode").value = "";
-  $("aEpTitle").value = ""; $("aPlatform").value = ""; $("aRepeat").checked = false; $("aRating").value = ""; $("aNotes").value = "";
+  $("aEpTitle").value = ""; $("aYear").value = ""; $("aPlatform").value = ""; $("aRepeat").checked = false; $("aRating").value = ""; $("aNotes").value = "";
 }
 function openLogModal() { resetLogModal(); $("modalLog").classList.remove("hidden"); }
 function openEditModal(entry) {
@@ -426,8 +509,10 @@ function openEditModal(entry) {
   $("aEditId").value = entry.id || ""; $("aDate").value = entry.dateViewed || todayYMD();
   $("aTitle").value = entry.title || ""; $("aSeason").value = entry.season || "";
   $("aEpisode").value = entry.episode || ""; $("aEpTitle").value = entry.episodeTitle || "";
+  $("aYear").value = entry.year || "";
   $("aPlatform").value = entry.platform || ""; $("aRepeat").checked = !!entry.repeat;
   $("aRating").value = entry.rating || ""; $("aNotes").value = entry.notes || "";
+  $("btnDeleteLog").classList.remove("hidden");
   $("modalLog").classList.remove("hidden");
 }
 function closeLogModal() { $("modalLog").classList.add("hidden"); }
@@ -468,17 +553,39 @@ function doEpFetch(id, s, e) {
     }).catch(function() { showError("Could not fetch episode title."); });
 }
 
+function autoFillYear() {
+  var title = $("aTitle").value.trim();
+  if (!title) { showError("Enter a title first."); return; }
+  var td = getTmdb(title);
+  if (td && td.year) { $("aYear").value = td.year; return; }
+  var key = norm(title);
+  if (key) delete tmdbCache[key];
+  fetchTmdbForTitles([title], function() {
+    var td2 = getTmdb(title);
+    if (td2 && td2.year) $("aYear").value = td2.year;
+    else showError("Could not find year on TMDB.");
+  });
+}
+
 function saveLogEntry() {
   showError("");
   var editId = $("aEditId").value;
   var row = { dateViewed: $("aDate").value, title: $("aTitle").value.trim(), season: $("aSeason").value.trim(),
-    episode: $("aEpisode").value.trim(), episodeTitle: $("aEpTitle").value.trim(), platform: $("aPlatform").value,
-    repeat: $("aRepeat").checked, rating: Number($("aRating").value||0), notes: $("aNotes").value.trim() };
+    episode: $("aEpisode").value.trim(), episodeTitle: $("aEpTitle").value.trim(), year: $("aYear").value.trim(),
+    platform: $("aPlatform").value, repeat: $("aRepeat").checked, rating: Number($("aRating").value||0), notes: $("aNotes").value.trim() };
   if (!row.title) { showError("Title is required."); return; }
   if (!row.season) row.season = "1"; if (!row.episode) row.episode = "1";
   var path = editId ? "editLog" : "addLog";
   var payload = editId ? { id: editId, row: row } : { row: row };
   apiPost(path, payload).then(function(r) { if(!r.ok) throw new Error(r.error||"Save failed"); return sync(); })
+    .then(function() { closeLogModal(); resetLogModal(); }).catch(function(e) { showError(String(e)); });
+}
+
+function deleteLogEntry() {
+  var editId = $("aEditId").value;
+  if (!editId) return;
+  if (!confirm("Are you sure you want to delete this entry? This cannot be undone.")) return;
+  apiPost("deleteLog", { id: editId }).then(function(r) { if(!r.ok) throw new Error(r.error||"Delete failed"); return sync(); })
     .then(function() { closeLogModal(); resetLogModal(); }).catch(function(e) { showError(String(e)); });
 }
 
@@ -522,7 +629,13 @@ function init() {
   $("homeAddLog").addEventListener("click", openLogModal);
   $("modalLogClose").addEventListener("click", closeLogModal);
   $("btnSaveLog").addEventListener("click", saveLogEntry);
+  $("btnDeleteLog").addEventListener("click", deleteLogEntry);
   $("btnAutoFill").addEventListener("click", autoFillEpTitle);
+  $("btnAutoFillYear").addEventListener("click", autoFillYear);
+  $("btnTmdbPicker").addEventListener("click", openTmdbPicker);
+  $("btnTmdbPickerSearch").addEventListener("click", function() { doTmdbPickerSearch($("tmdbPickerSearch").value.trim()); });
+  $("tmdbPickerSearch").addEventListener("keydown", function(ev) { if (ev.key === "Enter") { ev.preventDefault(); doTmdbPickerSearch(this.value.trim()); } });
+  $("modalTmdbPickerClose").addEventListener("click", closeTmdbPicker);
   $("btnSetMovie").addEventListener("click", function() { $("aSeason").value="movie"; $("aEpisode").value="movie"; });
   $("btnSetSpecial").addEventListener("click", function() { $("aSeason").value="special"; $("aEpisode").value="special"; });
   $("homeAddWatchlist").addEventListener("click", openWatchlistModal);
