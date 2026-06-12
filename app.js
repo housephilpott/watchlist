@@ -578,7 +578,7 @@ function saveLogEntry() {
   var path = editId ? "editLog" : "addLog";
   var payload = editId ? { id: editId, row: row } : { row: row };
   apiPost(path, payload).then(function(r) { if(!r.ok) throw new Error(r.error||"Save failed"); return sync(); })
-    .then(function() { closeLogModal(); resetLogModal(); }).catch(function(e) { showError(String(e)); });
+    .then(function() {  if (editId) { closeLogModal(); resetLogModal(); }  else { resetLogModal(); showError("Saved ✓"); }}).catch(function(e) { showError(String(e)); });
 }
 
 function deleteLogEntry() {
