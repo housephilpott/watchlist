@@ -123,18 +123,22 @@
     <div class="grid gap-3 grid-cols-2">
       <div><label class="text-xs text-muted">Date viewed</label><input id="aDate" type="date" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white" /></div>
       <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-white"><input id="aRepeat" type="checkbox" class="rounded" /> Repeat ([r])</label></div>
-      <div class="col-span-2"><label class="text-xs text-muted">Title</label>
-        <div class="col-span-2">
-        <label class="text-xs text-muted">Title</label>
-        <div class="flex gap-2 mt-1">
-        <input id="wTitle" class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" />
-        <button id="btnWlPicker" class="px-3 py-2.5 rounded-xl bg-card border border-faint text-sm hover:bg-faint transition" title="Search TMDB">
-          🔍
-        </button>
-      </div>
-      </div>
+      
+<div class="col-span-2">
+  <label class="text-xs text-muted">Title</label>
 
-      </div>
+  <div class="flex gap-2 mt-1">
+    <input id="aTitle"
+           class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint"
+           placeholder="Show or film name" />
+
+    <button id="btnTmdbPicker"
+            class="px-3 py-2.5 rounded-xl bg-card border border-faint text-sm hover:bg-faint transition"
+            title="Search TMDB">
+      🔍
+    </button>
+  </div>
+</div>
       <div><label class="text-xs text-muted">Season</label><input id="aSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 2" /></div>
       <div><label class="text-xs text-muted">Episode</label><input id="aEpisode" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 7" /></div>
       <div><label class="text-xs text-muted">Episode Title</label><input id="aEpTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. The One Where..." /></div>
