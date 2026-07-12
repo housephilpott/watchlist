@@ -242,8 +242,7 @@ function renderLog() {
   for (var e = 0; e < ebs.length; e++) {
     ebs[e].addEventListener("click", (function(idx) { return function(ev) { ev.stopPropagation(); openEditModal(data[idx]); }; })(Number(ebs[e].getAttribute("data-edit-idx"))));
   }
-  if (showing < total) { $("logLoadMore").classList.remove("hidden"); $("logShowing").textContent = "Showing "+showing+" of "+total; }
-  else $("logLoadMore").classList.add("hidden");
+  $("wlLoadMore").classList.add("hidden");
   if (tf.length) fetchTmdbForTitles(tf, function() { renderLog(); });
 }
 
@@ -323,9 +322,12 @@ function renderWatchlist() {
 
   $("wlEmpty").classList.add("hidden");
   $("wlLoadMore").classList.add("hidden");
+  $("inProgressSection").style.display =
+    inProgress.length ? "" : "none";
 
   if ($("notStartedHeader")) {
-    $("notStartedHeader").style.display = notStarted.length ? "" : "none";
+    $("notStartedSection").style.display =
+    notStarted.length ? "" : "none";
   }
 
   if ($("completedSection")) {
@@ -448,7 +450,7 @@ function renderWatchlist() {
 
   renderWatchlistItems(inProgress, host);
   renderWatchlistItems(notStarted, notStartedHost);
-  renderWatchlistItems(completed, completedHost);
+  renderCompletedItems(completed, completedHost);
 
   function attachWatchlistHandlers(container) {
     if (!container) return;
@@ -985,6 +987,25 @@ function saveWatchlistEntry() {
     .catch(function(e) { showError(String(e)); });
 }
 
+function renderCompletedItems(items, targetHost) {
+  for (var i = 0; i < items.length; i++) {
+    var w = items[i];
+
+    targetHost.insertAdjacentHTML(
+      "beforeend",
+      '<div class="px-3 py-2 border-b border-faint/30 last:border-b-0">' +
+        '<button class="w-full text-left text-sm text-slate-300 hover:text-white transition" ' +
+        'data-detail-title="' + escHtml(w.title) + '">' +
+          '✅ ' + escHtml(w.title) +
+          (norm(w.kind)==="film"
+            ? ''
+            : ' S' + escHtml(w.season)) +
+        '</button>' +
+      '</div>'
+    );
+  }
+}
+
 // ====== SYNC ======
 function sync() {
   showError("");
@@ -1007,7 +1028,7 @@ function init() {
     $(fIds[j]).addEventListener("change", function() { logVisible = LOG_PAGE_SIZE; renderLog(); });
   }
   $("btnLogMore").addEventListener("click", function() { logVisible += LOG_PAGE_SIZE; renderLog(); });
-  $("btnWlMore").addEventListener("click", function() { wlVisible += WL_PAGE_SIZE; renderWatchlist(); });
+  // $("btnWlMore").addEventListener("click", function() { wlVisible += WL_PAGE_SIZE; renderWatchlist(); });
   $("homeAddLog").addEventListener("click", openLogModal);
   $("modalLogClose").addEventListener("click", closeLogModal);
   $("btnSaveLog").addEventListener("click", saveLogEntry);
