@@ -287,104 +287,239 @@ function getNextEp(title, season) {
 }
 
 function renderWatchlist() {
-  var host = $("watchlistTiles"); host.innerHTML = "";
+  var host = $("watchlistTiles");
   var notStartedHost = $("notStartedTiles");
   var completedHost = $("completedWatchlistTiles");
 
-  notStartedHost.innerHTML = "";
-  completedHost.innerHTML = "";
-    var list = computeWLProgress();
+  host.innerHTML = "";
+  if (notStartedHost) notStartedHost.innerHTML = "";
+  if (completedHost) completedHost.innerHTML = "";
 
-    var inProgress = list.filter(function(w) {
-      return !w.watched &&
-         Number(w.watchedEps || 0) > 0;
-    });
+  var list = computeWLProgress();
 
-    var notStarted = list.filter(function(w) {
-      return !w.watched &&
-         Number(w.watchedEps || 0) === 0;
-    });
+  var inProgress = list.filter(function(w) {
+    return !w.watched && Number(w.watchedEps || 0) > 0;
+  });
 
-    var completed = list.filter(function(w) {
-      return w.watched;
-    });
+  var notStarted = list.filter(function(w) {
+    return !w.watched && Number(w.watchedEps || 0) === 0;
+  });
 
-var total = list.length;
-var showing = Math.min(wlVisible, total);var tf = [];
-  for (var i = 0; i < showing; i++) {
-    var w = list[i];
+  var completed = list.filter(function(w) {
+    return w.watched;
+  });
 
-    var targetHost =
-      w.watched
-        ? completedHost
-        : ((Number(w.watchedEps || 0) > 0)
-            ? host
-            : notStartedHost); te = Number(w.totalEps||0), de = Number(w.watchedEps||0);
-    var pct = te ? Math.min(100, Math.round((de/te)*100)) : (w.watched ? 100 : 0);
-    var isF = norm(w.kind)==="film", tType = isF?"movie":"episode", td = getTmdb(w.title);
-    var gp = td ? genrePills(td.genreIds, 3) : "";
-    var kb = isF ? '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Film</span>' : '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">Season '+escHtml(w.season)+'</span>';
-    var pcC = {High:"text-red-400",Medium:"text-amber-400",Low:"text-slate-400"};
-    var pc = pcC[w.priority]||"text-muted";
-    var db = w.watched ? '<span class="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-300">Done</span>' : "";
-    var bc = w.watched ? "bg-green-500" : "bg-accent";
-    var pl = isF ? (w.watched?"Watched":"Not watched") : (de+"/"+te+" eps");
-    var tb = isF ? '<button data-toggle="'+escHtml(w.id)+'" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm transition active:scale-[0.9] '+(w.watched?'bg-green-500 text-white':'bg-surface border border-faint text-faint hover:border-green-500 hover:text-green-400')+'">\u2713</button>' : "";
-    var neb = (!isF && !w.watched) ? '<button data-next-title="'+escHtml(w.title)+'" data-next-season="'+escHtml(w.season)+'" class="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm text-accent hover:bg-accent/40 transition active:scale-[0.9]">\u23ED</button>' : "";
-    var delBtn = '<button data-delete-watchlist="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
-    var nh = w.notes ? '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">'+escHtml(w.notes)+'</div>' : "";
-    if (w.title && norm(w.title) && !tmdbCache[norm(w.title)]) tf.push(w.title);
-    targetHost.insertAdjacentHTML("beforeend",
-      '<div class="bg-card rounded-2xl p-3 flex gap-3">'+
-      '<div class="flex-shrink-0 cursor-pointer" data-detail-title="'+escHtml(w.title)+'">'+posterHtml(w.title,tType)+'</div>'+
-      '<div class="flex-1 min-w-0">'+
-        '<div class="flex items-start gap-2">'+
-          '<div class="flex-1 min-w-0">'+
-            '<div class="font-semibold text-white text-sm leading-snug truncate cursor-pointer hover:underline" data-detail-title="'+escHtml(w.title)+'">'+escHtml(w.title)+'</div>'+
-            '<div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="px-2 py-0.5 rounded-full text-xs bg-surface '+pc+'">'+escHtml(w.priority||"Medium")+'</span>'+kb+db+'</div>'+
-            (gp?'<div class="flex flex-wrap gap-1 mt-1">'+gp+'</div>':'')+
-          '</div>'+
-          '<div class="flex gap-1">'+neb+tb+delBtn+'</div>'+
-        '</div>'+
-        tmdbRatingHtml(w.title)+
-        '<div class="mt-2"><div class="flex items-center justify-between text-xs mb-1"><span class="text-slate-300">'+pl+'</span><span class="text-muted">'+pct+'%</span></div>'+
-        '<div class="h-1.5 w-full rounded-full bg-surface overflow-hidden"><div class="h-full '+bc+' rounded-full transition-all" style="width:'+pct+'%"></div></div></div>'+
-        overviewHtml(w.title)+nh+
-      '</div></div>'
-    );
+  var total = list.length;
+
+  if (!total) {
+    $("wlEmpty").classList.remove("hidden");
+    $("wlLoadMore").classList.add("hidden");
+
+    if ($("notStartedHeader")) $("notStartedHeader").style.display = "none";
+    if ($("completedSection")) $("completedSection").style.display = "none";
+
+    return;
   }
-  attachExpandHandlers(host); attachDetailHandlers(host);
-  var dbs = host.querySelectorAll("[data-delete-watchlist]");
-  
-$("completedCount").textContent =
-  "(" + completed.length + ")";
-  
-$("notStartedHeader").style.display =
-  notStarted.length ? "" : "none";
 
-$("completedSection").style.display =
-  completed.length ? "" : "none";
-  
-for (var d = 0; d < dbs.length; d++) {
-  dbs[d].addEventListener(
-    "click",
-    (function(btn) {
-      return function(ev) {
-        ev.stopPropagation();
-        deleteWatchlistItem(
-          btn.getAttribute("data-delete-watchlist")
-        );
+  $("wlEmpty").classList.add("hidden");
+  $("wlLoadMore").classList.add("hidden");
+
+  if ($("notStartedHeader")) {
+    $("notStartedHeader").style.display = notStarted.length ? "" : "none";
+  }
+
+  if ($("completedSection")) {
+    $("completedSection").style.display = completed.length ? "" : "none";
+  }
+
+  if ($("completedCount")) {
+    $("completedCount").textContent = "(" + completed.length + ")";
+  }
+
+  var tf = [];
+
+  function renderWatchlistItems(items, targetHost) {
+    if (!targetHost) return;
+
+    for (var i = 0; i < items.length; i++) {
+      var w = items[i];
+      var te = Number(w.totalEps || 0);
+      var de = Number(w.watchedEps || 0);
+      var pct = te ? Math.min(100, Math.round((de / te) * 100)) : (w.watched ? 100 : 0);
+
+      var isF = norm(w.kind) === "film";
+      var tType = isF ? "movie" : "episode";
+      var td = getTmdb(w.title);
+      var gp = td ? genrePills(td.genreIds, 3) : "";
+
+      var kb = isF
+        ? '<span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300">Film</span>'
+        : '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300">Season ' + escHtml(w.season) + '</span>';
+
+      var pcC = {
+        High: "text-red-400",
+        Medium: "text-amber-400",
+        Low: "text-slate-400"
       };
-    })(dbs[d])
-  );
-}
-  var tbs = host.querySelectorAll("[data-toggle]");
-  for (var j = 0; j < tbs.length; j++) tbs[j].addEventListener("click", (function(btn){ return function(ev) { ev.stopPropagation(); var id=btn.getAttribute("data-toggle"); for(var k=0;k<WATCHLIST.length;k++){if(String(WATCHLIST[k].id)===String(id)){WATCHLIST[k].manualDone=!WATCHLIST[k].manualDone;break;}} renderWatchlist(); };})(tbs[j]));
-  var nbs = host.querySelectorAll("[data-next-title]");
-  for (var n = 0; n < nbs.length; n++) nbs[n].addEventListener("click", (function(btn){ return function(ev) { ev.stopPropagation(); addNextEpisode(btn.getAttribute("data-next-title"), btn.getAttribute("data-next-season")); };})(nbs[n]));
-  if (showing < total) { $("wlLoadMore").classList.remove("hidden"); $("wlShowing").textContent = "Showing "+showing+" of "+total; }
-  else $("wlLoadMore").classList.add("hidden");
-  if (tf.length) fetchTmdbForTitles(tf, function() { renderWatchlist(); });
+
+      var pc = pcC[w.priority] || "text-muted";
+
+      var db = w.watched
+        ? '<span class="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-300">Done</span>'
+        : "";
+
+      var bc = w.watched ? "bg-green-500" : "bg-accent";
+
+      var pl = isF
+        ? (w.watched ? "Watched" : "Not watched")
+        : (de + "/" + te + " eps");
+
+      var tb = isF
+        ? '<button data-toggle="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm transition active:scale-[0.9] ' +
+          (w.watched
+            ? 'bg-green-500 text-white'
+            : 'bg-surface border border-faint text-faint hover:border-green-500 hover:text-green-400') +
+          '">✓</button>'
+        : "";
+
+      var neb = (!isF && !w.watched)
+        ? '<button data-next-title="' + escHtml(w.title) + '" data-next-season="' + escHtml(w.season) + '" class="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm text-accent hover:bg-accent/40 transition active:scale-[0.9]">⏭</button>'
+        : "";
+
+      var delBtn =
+        '<button data-delete-watchlist="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
+
+      var nh = w.notes
+        ? '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">' + escHtml(w.notes) + '</div>'
+        : "";
+
+      if (w.title && norm(w.title) && !tmdbCache[norm(w.title)]) {
+        tf.push(w.title);
+      }
+
+      targetHost.insertAdjacentHTML(
+        "beforeend",
+        '<div class="bg-card rounded-2xl p-3 flex gap-3">' +
+          '<div class="flex-shrink-0 cursor-pointer" data-detail-title="' + escHtml(w.title) + '">' +
+            posterHtml(w.title, tType) +
+          '</div>' +
+
+          '<div class="flex-1 min-w-0">' +
+            '<div class="flex items-start gap-2">' +
+              '<div class="flex-1 min-w-0">' +
+                '<div class="font-semibold text-white text-sm leading-snug truncate cursor-pointer hover:underline" data-detail-title="' + escHtml(w.title) + '">' +
+                  escHtml(w.title) +
+                '</div>' +
+
+                '<div class="flex flex-wrap items-center gap-1.5 mt-1">' +
+                  '<span class="px-2 py-0.5 rounded-full text-xs bg-surface ' + pc + '">' +
+                    escHtml(w.priority || "Medium") +
+                  '</span>' +
+                  kb +
+                  db +
+                '</div>' +
+
+                (gp ? '<div class="flex flex-wrap gap-1 mt-1">' + gp + '</div>' : '') +
+              '</div>' +
+
+              '<div class="flex gap-1">' + neb + tb + delBtn + '</div>' +
+            '</div>' +
+
+            tmdbRatingHtml(w.title) +
+
+            '<div class="mt-2">' +
+              '<div class="flex items-center justify-between text-xs mb-1">' +
+                '<span class="text-slate-300">' + pl + '</span>' +
+                '<span class="text-muted">' + pct + '%</span>' +
+              '</div>' +
+
+              '<div class="h-1.5 w-full rounded-full bg-surface overflow-hidden">' +
+                '<div class="h-full ' + bc + ' rounded-full transition-all" style="width:' + pct + '%"></div>' +
+              '</div>' +
+            '</div>' +
+
+            overviewHtml(w.title) +
+            nh +
+          '</div>' +
+        '</div>'
+      );
+    }
+  }
+
+  renderWatchlistItems(inProgress, host);
+  renderWatchlistItems(notStarted, notStartedHost);
+  renderWatchlistItems(completed, completedHost);
+
+  function attachWatchlistHandlers(container) {
+    if (!container) return;
+
+    attachExpandHandlers(container);
+    attachDetailHandlers(container);
+
+    var dbs = container.querySelectorAll("[data-delete-watchlist]");
+    for (var d = 0; d < dbs.length; d++) {
+      dbs[d].addEventListener(
+        "click",
+        (function(btn) {
+          return function(ev) {
+            ev.stopPropagation();
+            deleteWatchlistItem(
+              btn.getAttribute("data-delete-watchlist")
+            );
+          };
+        })(dbs[d])
+      );
+    }
+
+    var tbs = container.querySelectorAll("[data-toggle]");
+    for (var j = 0; j < tbs.length; j++) {
+      tbs[j].addEventListener(
+        "click",
+        (function(btn) {
+          return function(ev) {
+            ev.stopPropagation();
+
+            var id = btn.getAttribute("data-toggle");
+
+            for (var k = 0; k < WATCHLIST.length; k++) {
+              if (String(WATCHLIST[k].id) === String(id)) {
+                WATCHLIST[k].manualDone = !WATCHLIST[k].manualDone;
+                break;
+              }
+            }
+
+            renderWatchlist();
+          };
+        })(tbs[j])
+      );
+    }
+
+    var nbs = container.querySelectorAll("[data-next-title]");
+    for (var n = 0; n < nbs.length; n++) {
+      nbs[n].addEventListener(
+        "click",
+        (function(btn) {
+          return function(ev) {
+            ev.stopPropagation();
+            addNextEpisode(
+              btn.getAttribute("data-next-title"),
+              btn.getAttribute("data-next-season")
+            );
+          };
+        })(nbs[n])
+      );
+    }
+  }
+
+  attachWatchlistHandlers(host);
+  attachWatchlistHandlers(notStartedHost);
+  attachWatchlistHandlers(completedHost);
+
+  if (tf.length) {
+    fetchTmdbForTitles(tf, function() {
+      renderWatchlist();
+    });
+  }
 }
 
 // ====== SHARED HANDLERS ======
