@@ -304,10 +304,8 @@ function renderWatchlist() {
     var bc = w.watched ? "bg-green-500" : "bg-accent";
     var pl = isF ? (w.watched?"Watched":"Not watched") : (de+"/"+te+" eps");
     var tb = isF ? '<button data-toggle="'+escHtml(w.id)+'" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm transition active:scale-[0.9] '+(w.watched?'bg-green-500 text-white':'bg-surface border border-faint text-faint hover:border-green-500 hover:text-green-400')+'">\u2713</button>' : "";
-    var delBtn =
-  '<button data-delete-watchlist="' + escHtml(w.id) +
-  '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
     var neb = (!isF && !w.watched) ? '<button data-next-title="'+escHtml(w.title)+'" data-next-season="'+escHtml(w.season)+'" class="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm text-accent hover:bg-accent/40 transition active:scale-[0.9]">\u23ED</button>' : "";
+    var delBtn = '<button data-delete-watchlist="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
     var nh = w.notes ? '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">'+escHtml(w.notes)+'</div>' : "";
     if (w.title && norm(w.title) && !tmdbCache[norm(w.title)]) tf.push(w.title);
     host.insertAdjacentHTML("beforeend",
@@ -320,7 +318,7 @@ function renderWatchlist() {
             '<div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="px-2 py-0.5 rounded-full text-xs bg-surface '+pc+'">'+escHtml(w.priority||"Medium")+'</span>'+kb+db+'</div>'+
             (gp?'<div class="flex flex-wrap gap-1 mt-1">'+gp+'</div>':'')+
           '</div>'+
-          '<div class="flex gap-1">'+neb+tb+'</div>'+
+          '<div class="flex gap-1">'+neb+tb+delBtn+'</div>'+
         '</div>'+
         tmdbRatingHtml(w.title)+
         '<div class="mt-2"><div class="flex items-center justify-between text-xs mb-1"><span class="text-slate-300">'+pl+'</span><span class="text-muted">'+pct+'%</span></div>'+
@@ -330,6 +328,21 @@ function renderWatchlist() {
     );
   }
   attachExpandHandlers(host); attachDetailHandlers(host);
+  var dbs = host.querySelectorAll("[data-delete-watchlist]");
+
+for (var d = 0; d < dbs.length; d++) {
+  dbs[d].addEventListener(
+    "click",
+    (function(btn) {
+      return function(ev) {
+        ev.stopPropagation();
+        deleteWatchlistItem(
+          btn.getAttribute("data-delete-watchlist")
+        );
+      };
+    })(dbs[d])
+  );
+}
   var tbs = host.querySelectorAll("[data-toggle]");
   for (var j = 0; j < tbs.length; j++) tbs[j].addEventListener("click", (function(btn){ return function(ev) { ev.stopPropagation(); var id=btn.getAttribute("data-toggle"); for(var k=0;k<WATCHLIST.length;k++){if(String(WATCHLIST[k].id)===String(id)){WATCHLIST[k].manualDone=!WATCHLIST[k].manualDone;break;}} renderWatchlist(); };})(tbs[j]));
   var nbs = host.querySelectorAll("[data-next-title]");
@@ -769,6 +782,23 @@ function deleteLogEntry() {
   if (!confirm("Are you sure you want to delete this entry? This cannot be undone.")) return;
   apiPost("deleteLog", { id: editId }).then(function(r) { if(!r.ok) throw new Error(r.error||"Delete failed"); return sync(); })
     .then(function() { closeLogModal(); resetLogModal(); }).catch(function(e) { showError(String(e)); });
+}
+
+function deleteWatchlistItem(id) {
+  if (!confirm("Remove this item from your watchlist?")) {
+    return;
+  }
+
+  apiPost("deleteWatchlist", { id: id })
+    .then(function(r) {
+      if (!r.ok) {
+        throw new Error(r.error || "Delete failed");
+      }
+      return sync();
+    })
+    .catch(function(e) {
+      showError(String(e));
+    });
 }
 
 function saveWatchlistEntry() {
