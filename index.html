@@ -200,7 +200,21 @@
       <button id="modalWatchlistClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
     </div>
     <div class="grid gap-3 grid-cols-2">
-      <div class="col-span-2"><label class="text-xs text-muted">Title</label><input id="wTitle" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" /></div>
+      <div class="col-span-2">
+  <label class="text-xs text-muted">Title</label>
+
+  <div class="flex gap-2 mt-1">
+    <input id="wTitle"
+           class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint"
+           placeholder="Show or film name" />
+
+    <button id="btnWlPicker"
+            class="px-3 py-2.5 rounded-xl bg-card border border-faint text-sm hover:bg-faint transition"
+            title="Search TMDB">
+      🔍
+    </button>
+  </div>
+</div>
       <div><label class="text-xs text-muted">Kind</label><select id="wKind" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white"><option value="season">Season</option><option value="film">Film</option></select></div>
       <div><label class="text-xs text-muted">Priority</label><select id="wPriority" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white"><option value="High">High</option><option value="Medium" selected>Medium</option><option value="Low">Low</option></select></div>
       <div id="wSeasonGroup"><label class="text-xs text-muted">Season number</label><input id="wSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 1" /></div>
