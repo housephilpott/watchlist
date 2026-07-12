@@ -124,10 +124,16 @@
       <div><label class="text-xs text-muted">Date viewed</label><input id="aDate" type="date" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white" /></div>
       <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-sm text-white"><input id="aRepeat" type="checkbox" class="rounded" /> Repeat ([r])</label></div>
       <div class="col-span-2"><label class="text-xs text-muted">Title</label>
+        <div class="col-span-2">
+        <label class="text-xs text-muted">Title</label>
         <div class="flex gap-2 mt-1">
-          <input id="aTitle" class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" />
-          <button id="btnTmdbPicker" class="px-3 py-2.5 rounded-xl bg-card border border-faint text-sm hover:bg-faint transition" title="Search TMDB">&#128269;</button>
-        </div>
+        <input id="wTitle" class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Show or film name" />
+        <button id="btnWlPicker" class="px-3 py-2.5 rounded-xl bg-card border border-faint text-sm hover:bg-faint transition" title="Search TMDB">
+          🔍
+        </button>
+      </div>
+      </div>
+
       </div>
       <div><label class="text-xs text-muted">Season</label><input id="aSeason" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 2" /></div>
       <div><label class="text-xs text-muted">Episode</label><input id="aEpisode" class="mt-1 w-full rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="e.g. 7" /></div>
@@ -163,6 +169,25 @@
   </div>
 </div>
 
+<!-- WATCHLIST TMDB PICKER MODAL -->
+<div id="modalWlPicker" class="hidden fixed inset-0 bg-black/70 z-[60] overflow-y-auto">
+  <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-lg text-white">Add from TMDB</h3>
+      <button id="modalWlPickerClose" class="text-muted hover:text-white text-2xl leading-none">&times;</button>
+    </div>
+
+    <div class="flex gap-2">
+      <input id="wlPickerSearch" class="flex-1 rounded-xl bg-card border border-faint px-3 py-2.5 text-sm text-white placeholder-faint" placeholder="Search movies & TV shows..." />
+      <button id="btnWlPickerSearch" class="px-4 py-2.5 rounded-xl bg-accent hover:bg-accentHover text-sm font-semibold transition">
+        Search
+      </button>
+    </div>
+
+    <div id="wlPickerResults" class="space-y-2"></div>
+  </div>
+</div>
+
 <!-- ADD WATCHLIST MODAL -->
 <div id="modalWatchlist" class="hidden fixed inset-0 bg-black/60 z-50 overflow-y-auto">
   <div class="max-w-lg mx-auto mt-8 mb-8 mx-4 bg-surface rounded-2xl border border-faint p-5 space-y-4">
@@ -182,6 +207,8 @@
   </div>
 </div>
 
+
+  
 <!-- DETAIL VIEW -->
 <div id="modalDetail" class="hidden fixed inset-0 bg-base z-50 overflow-y-auto">
   <div class="max-w-3xl mx-auto pb-8" id="detailContent"></div>
