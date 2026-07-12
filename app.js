@@ -496,6 +496,185 @@ function doTmdbPickerSearch(query) {
     });
 }
 
+// ====== WATCHLIST TMDB PICKER ======
+function openWlPicker() {
+  var q = $("wTitle").value.trim();
+  $("wlPickerSearch").value = q;
+  $("wlPickerResults").innerHTML = "";
+  $("modalWlPicker").classList.remove("hidden");
+  if (q) doWlPickerSearch(q);
+}
+
+function closeWlPicker() {
+  $("modalWlPicker").classList.add("hidden");
+}
+
+function doWlPickerSearch(query) {
+  if (!query) return;
+
+  $("wlPickerResults").innerHTML = '<div class="text-center text-muted py-4">Searching...</div>';
+
+  fetch(TMDB_SEARCH + "?api_key=" + TMDB_KEY + "&query=" + encodeURIComponent(query) + "&page=1")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var results = (data.results || [])
+        .filter(function(r) {
+          return r.media_type === "movie" || r.media_type === "tv";
+        })
+        .slice(0, 10);
+
+      if (!results.length) {
+        $("wlPickerResults").innerHTML = '<div class="text-center text-muted py-4">No results found.</div>';
+        return;
+      }
+
+      var h = "";
+
+      for (var i = 0; i < results.length; i++) {
+        var r = results[i];
+        var nm = r.title || r.name || "Unknown";
+        var yr = (r.release_date || r.first_air_date || "").substring(0, 4);
+        var mt = r.media_type === "movie" ? "Movie" : "TV";
+        var pImg = r.poster_path
+          ? '<img src="' + TMDB_IMG + r.poster_path + '" class="w-12 h-16 object-cover rounded-lg flex-shrink-0" />'
+          : '<div class="w-12 h-16 bg-surface rounded-lg flex items-center justify-center text-lg flex-shrink-0">🎬</div>';
+        var ov = r.overview
+          ? escHtml(r.overview).substring(0, 120) + (r.overview.length > 120 ? "..." : "")
+          : "";
+
+        h += '<button class="wl-pick-btn w-full text-left bg-card hover:bg-faint rounded-xl p-2.5 flex gap-3 transition" data-pick-idx="' + i + '">' +
+          pImg +
+          '<div class="flex-1 min-w-0">' +
+            '<div class="font-semibold text-white text-sm truncate">' + escHtml(nm) + '</div>' +
+            '<div class="text-xs text-muted">' + (yr ? yr + " · " : "") + mt + '</div>' +
+            (ov ? '<div class="text-xs text-slate-400 mt-0.5 line-clamp-2">' + ov + '</div>' : '') +
+          '</div>' +
+        '</button>';
+      }
+
+      $("wlPickerResults").innerHTML = h;
+
+      var btns = $("wlPickerResults").querySelectorAll(".wl-pick-btn");
+      for (var b = 0; b < btns.length; b++) {
+        btns[b].addEventListener("click", (function(idx) {
+          return function() {
+            var picked = results[idx];
+            if (picked.media_type === "movie") {
+              selectWlMovie(picked);
+            } else {
+              selectWlShow(picked);
+            }
+          };
+        })(b));
+      }
+    })
+    .catch(function(e) {
+      console.error("Watchlist TMDB search failed:", e);
+      $("wlPickerResults").innerHTML = '<div class="text-center text-red-400 py-4">Search failed. Try again.</div>';
+    });
+}
+
+function cacheTmdbForTitle(title, result) {
+  var key = norm(title);
+  if (!key) return;
+
+  tmdbCache[key] = {
+    posterUrl: result.poster_path ? TMDB_IMG + result.poster_path : null,
+    overview: result.overview || "",
+    tmdbRating: result.vote_average || 0,
+    genreIds: result.genre_ids || [],
+    mediaType: result.media_type || "",
+    tmdbId: result.id,
+    year: (result.release_date || result.first_air_date || "").substring(0, 4),
+    backdropUrl: result.backdrop_path ? TMDB_IMG_LG + result.backdrop_path : null
+  };
+
+  saveCache();
+}
+
+function selectWlMovie(result) {
+  var title = result.title || result.name || "";
+
+  $("wTitle").value = title;
+  $("wKind").value = "film";
+  $("wSeason").value = "movie";
+  $("wTotal").value = "1";
+
+  updateWKFields();
+  cacheTmdbForTitle(title, result);
+  closeWlPicker();
+
+  showError("Film added from TMDB ✓");
+}
+
+function selectWlShow(result) {
+  var title = result.name || result.title || "";
+
+  $("wlPickerResults").innerHTML = '<div class="text-center text-muted py-4">Loading seasons...</div>';
+
+  fetch("https://api.themoviedb.org/3/tv/" + result.id + "?api_key=" + TMDB_KEY)
+    .then(function(r) { return r.json(); })
+    .then(function(show) {
+      var seasons = show.seasons || [];
+
+      // Skip season 0 / specials unless it is the only available season
+      var displaySeasons = seasons.filter(function(s) {
+        return s.season_number !== 0;
+      });
+      if (!displaySeasons.length) displaySeasons = seasons;
+
+      var h = "";
+
+      h += '<button id="wlSeasonBack" class="text-sm text-accent mb-2">← Back to results</button>';
+      h += '<div class="text-sm text-muted mb-2">Select a season for <span class="text-white font-semibold">' + escHtml(title) + '</span></div>';
+
+      for (var i = 0; i < displaySeasons.length; i++) {
+        var s = displaySeasons[i];
+        var label = s.name || ("Season " + s.season_number);
+        var eps = Number(s.episode_count || 0);
+
+        h += '<button class="wl-season-btn w-full text-left bg-card hover:bg-faint rounded-xl p-3 transition" data-season-idx="' + i + '">' +
+          '<div class="font-semibold text-white text-sm">' + escHtml(label) + '</div>' +
+          '<div class="text-xs text-muted">' + eps + ' episode' + (eps === 1 ? '' : 's') + '</div>' +
+        '</button>';
+      }
+
+      $("wlPickerResults").innerHTML = h;
+
+      $("wlSeasonBack").addEventListener("click", function() {
+        doWlPickerSearch($("wlPickerSearch").value.trim());
+      });
+
+      var btns = $("wlPickerResults").querySelectorAll(".wl-season-btn");
+      for (var b = 0; b < btns.length; b++) {
+        btns[b].addEventListener("click", (function(idx) {
+          return function() {
+            selectWlSeason(result, displaySeasons[idx]);
+          };
+        })(b));
+      }
+    })
+    .catch(function(e) {
+      console.error("Season lookup failed:", e);
+      $("wlPickerResults").innerHTML = '<div class="text-center text-red-400 py-4">Could not load seasons.</div>';
+    });
+}
+
+function selectWlSeason(result, season) {
+  var title = result.name || result.title || "";
+
+  $("wTitle").value = title;
+  $("wKind").value = "season";
+  $("wSeason").value = String(season.season_number || "");
+  $("wTotal").value = String(season.episode_count || 0);
+
+  updateWKFields();
+  cacheTmdbForTitle(title, result);
+  closeWlPicker();
+
+  showError("Season added from TMDB ✓");
+}
+
 // ====== MODALS ======
 function resetLogModal() {
   $("modalLogTitle").textContent = "Add to Log"; $("btnSaveLog").textContent = "Save"; $("aEditId").value = "";
@@ -639,9 +818,21 @@ function init() {
   $("btnSetMovie").addEventListener("click", function() { $("aSeason").value="movie"; $("aEpisode").value="movie"; });
   $("btnSetSpecial").addEventListener("click", function() { $("aSeason").value="special"; $("aEpisode").value="special"; });
   $("homeAddWatchlist").addEventListener("click", openWatchlistModal);
-  $("modalWatchlistClose").addEventListener("click", closeWatchlistModal);
-  $("btnSaveWatchlist").addEventListener("click", saveWatchlistEntry);
-  $("wKind").addEventListener("change", updateWKFields);
+$("modalWatchlistClose").addEventListener("click", closeWatchlistModal);
+$("btnSaveWatchlist").addEventListener("click", saveWatchlistEntry);
+$("wKind").addEventListener("change", updateWKFields);
+
+$("btnWlPicker").addEventListener("click", openWlPicker);
+$("modalWlPickerClose").addEventListener("click", closeWlPicker);
+$("btnWlPickerSearch").addEventListener("click", function() {
+  doWlPickerSearch($("wlPickerSearch").value.trim());
+});
+$("wlPickerSearch").addEventListener("keydown", function(ev) {
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    doWlPickerSearch(this.value.trim());
+  }
+});
   $("homeSync").addEventListener("click", sync);
   showTab("home"); sync();
 }
