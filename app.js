@@ -818,16 +818,16 @@ function init() {
   $("btnSetMovie").addEventListener("click", function() { $("aSeason").value="movie"; $("aEpisode").value="movie"; });
   $("btnSetSpecial").addEventListener("click", function() { $("aSeason").value="special"; $("aEpisode").value="special"; });
   $("homeAddWatchlist").addEventListener("click", openWatchlistModal);
-$("modalWatchlistClose").addEventListener("click", closeWatchlistModal);
-$("btnSaveWatchlist").addEventListener("click", saveWatchlistEntry);
-$("wKind").addEventListener("change", updateWKFields);
+  $("modalWatchlistClose").addEventListener("click", closeWatchlistModal);
+  $("btnSaveWatchlist").addEventListener("click", saveWatchlistEntry);
+  $("wKind").addEventListener("change", updateWKFields);
 
-$("btnWlPicker").addEventListener("click", openWlPicker);
-$("modalWlPickerClose").addEventListener("click", closeWlPicker);
-$("btnWlPickerSearch").addEventListener("click", function() {
+  $("btnWlPicker").addEventListener("click", openWlPicker);
+  $("modalWlPickerClose").addEventListener("click", closeWlPicker);
+  $("btnWlPickerSearch").addEventListener("click", function() {
   doWlPickerSearch($("wlPickerSearch").value.trim());
-});
-$("wlPickerSearch").addEventListener("keydown", function(ev) {
+  });
+  $("wlPickerSearch").addEventListener("keydown", function(ev) {
   if (ev.key === "Enter") {
     ev.preventDefault();
     doWlPickerSearch(this.value.trim());
