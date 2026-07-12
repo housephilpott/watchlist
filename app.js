@@ -288,12 +288,38 @@ function getNextEp(title, season) {
 
 function renderWatchlist() {
   var host = $("watchlistTiles"); host.innerHTML = "";
-  var list = computeWLProgress(), total = list.length, showing = Math.min(wlVisible, total);
-  if (!total) { $("wlEmpty").classList.remove("hidden"); $("wlLoadMore").classList.add("hidden"); return; }
-  $("wlEmpty").classList.add("hidden");
-  var tf = [];
+  var notStartedHost = $("notStartedTiles");
+  var completedHost = $("completedWatchlistTiles");
+
+  notStartedHost.innerHTML = "";
+  completedHost.innerHTML = "";
+    var list = computeWLProgress();
+
+    var inProgress = list.filter(function(w) {
+      return !w.watched &&
+         Number(w.watchedEps || 0) > 0;
+    });
+
+    var notStarted = list.filter(function(w) {
+      return !w.watched &&
+         Number(w.watchedEps || 0) === 0;
+    });
+
+    var completed = list.filter(function(w) {
+      return w.watched;
+    });
+
+var total = list.length;
+var showing = Math.min(wlVisible, total);var tf = [];
   for (var i = 0; i < showing; i++) {
-    var w = list[i], te = Number(w.totalEps||0), de = Number(w.watchedEps||0);
+    var w = list[i];
+
+    var targetHost =
+      w.watched
+        ? completedHost
+        : ((Number(w.watchedEps || 0) > 0)
+            ? host
+            : notStartedHost); te = Number(w.totalEps||0), de = Number(w.watchedEps||0);
     var pct = te ? Math.min(100, Math.round((de/te)*100)) : (w.watched ? 100 : 0);
     var isF = norm(w.kind)==="film", tType = isF?"movie":"episode", td = getTmdb(w.title);
     var gp = td ? genrePills(td.genreIds, 3) : "";
@@ -308,7 +334,7 @@ function renderWatchlist() {
     var delBtn = '<button data-delete-watchlist="' + escHtml(w.id) + '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
     var nh = w.notes ? '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">'+escHtml(w.notes)+'</div>' : "";
     if (w.title && norm(w.title) && !tmdbCache[norm(w.title)]) tf.push(w.title);
-    host.insertAdjacentHTML("beforeend",
+    targetHost.insertAdjacentHTML("beforeend",
       '<div class="bg-card rounded-2xl p-3 flex gap-3">'+
       '<div class="flex-shrink-0 cursor-pointer" data-detail-title="'+escHtml(w.title)+'">'+posterHtml(w.title,tType)+'</div>'+
       '<div class="flex-1 min-w-0">'+
@@ -329,7 +355,16 @@ function renderWatchlist() {
   }
   attachExpandHandlers(host); attachDetailHandlers(host);
   var dbs = host.querySelectorAll("[data-delete-watchlist]");
+  
+$("completedCount").textContent =
+  "(" + completed.length + ")";
+  
+$("notStartedHeader").style.display =
+  notStarted.length ? "" : "none";
 
+$("completedSection").style.display =
+  completed.length ? "" : "none";
+  
 for (var d = 0; d < dbs.length; d++) {
   dbs[d].addEventListener(
     "click",
