@@ -304,6 +304,9 @@ function renderWatchlist() {
     var bc = w.watched ? "bg-green-500" : "bg-accent";
     var pl = isF ? (w.watched?"Watched":"Not watched") : (de+"/"+te+" eps");
     var tb = isF ? '<button data-toggle="'+escHtml(w.id)+'" class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm transition active:scale-[0.9] '+(w.watched?'bg-green-500 text-white':'bg-surface border border-faint text-faint hover:border-green-500 hover:text-green-400')+'">\u2713</button>' : "";
+    var delBtn =
+  '<button data-delete-watchlist="' + escHtml(w.id) +
+  '" class="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-sm text-red-300 hover:bg-red-500/40 transition active:scale-[0.9]">🗑</button>';
     var neb = (!isF && !w.watched) ? '<button data-next-title="'+escHtml(w.title)+'" data-next-season="'+escHtml(w.season)+'" class="flex-shrink-0 w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-sm text-accent hover:bg-accent/40 transition active:scale-[0.9]">\u23ED</button>' : "";
     var nh = w.notes ? '<div class="notes-text line-clamp-2 text-xs text-slate-400 mt-1 cursor-pointer" data-expanded="false">'+escHtml(w.notes)+'</div>' : "";
     if (w.title && norm(w.title) && !tmdbCache[norm(w.title)]) tf.push(w.title);
