@@ -545,7 +545,7 @@ function renderWatchlist() {
     });
   }
 }
-}
+
 
 // ====== SHARED HANDLERS ======
 function attachExpandHandlers(host) {
