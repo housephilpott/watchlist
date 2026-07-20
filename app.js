@@ -361,7 +361,7 @@ function renderWatchlist() {
   }
 
   var tf = [];
-}
+
   function renderWatchlistItems(items, targetHost) {
     if (!targetHost) return;
 
@@ -473,7 +473,7 @@ function renderWatchlist() {
   renderWatchlistItems(inProgress, host);
   renderWatchlistItems(notStarted, notStartedHost);
   renderCompletedItems(completed, completedHost);
-
+  
   function attachWatchlistHandlers(container) {
     if (!container) return;
 
@@ -544,6 +544,7 @@ function renderWatchlist() {
       renderWatchlist();
     });
   }
+}
 }
 
 // ====== SHARED HANDLERS ======
