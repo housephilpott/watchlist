@@ -237,13 +237,35 @@ function renderLog() {
       '</div></div>'
     );
   }
-  attachExpandHandlers(host); attachDetailHandlers(host);
-  var ebs = host.querySelectorAll(".edit-btn");
-  for (var e = 0; e < ebs.length; e++) {
-    ebs[e].addEventListener("click", (function(idx) { return function(ev) { ev.stopPropagation(); openEditModal(data[idx]); }; })(Number(ebs[e].getAttribute("data-edit-idx"))));
-  }
-  $("wlLoadMore").classList.add("hidden");
-  if (tf.length) fetchTmdbForTitles(tf, function() { renderLog(); });
+  attachExpandHandlers(host);
+  attachDetailHandlers(host);
+
+var ebs = host.querySelectorAll(".edit-btn");
+for (var e = 0; e < ebs.length; e++) {
+  ebs[e].addEventListener(
+    "click",
+    (function(idx) {
+      return function(ev) {
+        ev.stopPropagation();
+        openEditModal(data[idx]);
+      };
+    })(Number(ebs[e].getAttribute("data-edit-idx")))
+  );
+}
+
+if (showing < total) {
+  $("logLoadMore").classList.remove("hidden");
+  $("logShowing").textContent =
+    "Showing " + showing + " of " + total;
+}
+else {
+  $("logLoadMore").classList.add("hidden");
+}
+
+if (tf.length) {
+  fetchTmdbForTitles(tf, function() {
+    renderLog();
+  });
 }
 
 // ====== WATCHLIST ======
