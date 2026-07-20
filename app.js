@@ -361,7 +361,7 @@ function renderWatchlist() {
   }
 
   var tf = [];
-
+}
   function renderWatchlistItems(items, targetHost) {
     if (!targetHost) return;
 
