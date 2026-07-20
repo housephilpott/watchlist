@@ -267,7 +267,7 @@ if (tf.length) {
     renderLog();
   });
 }
-
+}
 // ====== WATCHLIST ======
 function computeWLProgress() {
   var epSets = {}, movieT = {};
